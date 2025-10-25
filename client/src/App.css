@@ -1,0 +1,134 @@
+/* App.css - Twitch-like Dark Theme */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0e0e10;
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0e0e10;
+}
+
+.app-header {
+  background: #18181b;
+  border-bottom: 1px solid #2d2d30;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.app-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #9146ff;
+}
+
+.app-header p {
+  font-size: 0.875rem;
+  color: #adadb8;
+  font-weight: 400;
+}
+
+.app-main {
+  flex: 1;
+  padding: 0;
+  max-width: 100%;
+  margin: 0;
+}
+
+.stream-container {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 0;
+  min-height: calc(100vh - 80px);
+}
+
+.video-section {
+  background: #0e0e10;
+  position: relative;
+}
+
+.chat-section {
+  background: #18181b;
+  border-left: 1px solid #2d2d30;
+  display: flex;
+  flex-direction: column;
+}
+
+.controls-section {
+  display: none; /* Hidden as requested */
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .stream-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .chat-section {
+    border-left: none;
+    border-top: 1px solid #2d2d30;
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .app-header p {
+    font-size: 0.75rem;
+  }
+}
+
+/* Scrollbar Styling - Dark Theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #18181b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2d2d30;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d3d40;
+}
+
+/* Focus styles for accessibility */
+button:focus,
+input:focus {
+  outline: 2px solid #9146ff;
+  outline-offset: 2px;
+}
+
+/* Button hover effects */
+button {
+  transition: all 0.3s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
