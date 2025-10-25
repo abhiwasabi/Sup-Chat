@@ -18,6 +18,14 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
     scrollToBottom();
   }, [messages]);
 
+  // Clear chat when streaming stops
+  useEffect(() => {
+    if (!isStreaming) {
+      setMessages([]);
+      setAudienceCount(0);
+    }
+  }, [isStreaming]);
+
   useEffect(() => {
     if (!socket) return;
 
@@ -36,10 +44,17 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
       setAudienceCount(count);
     });
 
+    // Listen for stream stopped event
+    socket.on('stream-stopped', () => {
+      setMessages([]);
+      setAudienceCount(0);
+    });
+
     return () => {
       socket.off('fake-chat-message');
       socket.off('real-chat-message');
       socket.off('audience-update');
+      socket.off('stream-stopped');
     };
   }, [socket]);
 

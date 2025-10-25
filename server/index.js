@@ -228,6 +228,14 @@ io.on('connection', (socket) => {
       clearInterval(socket.fakeAudienceInterval);
       socket.fakeAudienceInterval = null;
     }
+    
+    // Clear the stream data
+    if (activeStreams.has(streamId)) {
+      activeStreams.delete(streamId);
+    }
+    
+    // Notify that the stream has stopped
+    io.to(streamId).emit('stream-stopped');
   });
 
   // Handle speech detection
