@@ -1,0 +1,152 @@
+/* OnScreenIndicator.css */
+.on-screen-indicator {
+  position: fixed;
+  top: 50%;
+  left: 20px;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 12px 16px;
+  min-width: 200px;
+  max-width: 300px;
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.indicator-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.indicator-icon {
+  font-size: 16px;
+}
+
+.indicator-title {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.faces-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.face-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.face-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.face-avatar {
+  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.face-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.face-name {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.face-confidence {
+  color: #adadb8;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* Animations */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .on-screen-indicator {
+    top: 50%;
+    left: 10px;
+    right: 10px;
+    transform: translateY(-50%);
+    min-width: auto;
+    max-width: none;
+    padding: 10px 12px;
+  }
+  
+  .faces-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .face-item {
+    flex: 1;
+    min-width: 80px;
+    padding: 4px 6px;
+  }
+  
+  .face-avatar {
+    font-size: 16px;
+    width: 20px;
+    height: 20px;
+  }
+  
+  .face-name {
+    font-size: 12px;
+  }
+  
+  .face-confidence {
+    font-size: 10px;
+  }
+}
+
+/* Special styling for different people */
+.face-item[data-person="Mehdi"] {
+  border-left: 3px solid #4CAF50;
+}
+
+.face-item[data-person="Abhi"] {
+  border-left: 3px solid #2196F3;
+}
+
+.face-item[data-person="Badri"] {
+  border-left: 3px solid #FF9800;
+}
+
+.face-item[data-person="Unknown Person"] {
+  border-left: 3px solid #9E9E9E;
+}

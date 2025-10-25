@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Face Detection Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+    <h1>Minimal Face Detection Test</h1>
+    <div id="status">Loading...</div>
+    <video id="video" width="320" height="240" autoplay muted style="border: 1px solid black;"></video>
+    <canvas id="canvas" width="320" height="240" style="border: 1px solid red;"></canvas>
+    <br>
+    <button onclick="startCamera()">Start Camera</button>
+    <button onclick="testDetection()">Test Detection</button>
+    <button onclick="loadModels()">Load Models</button>
+
+    <script>
+        let modelsLoaded = false;
+        let video = null;
+        let canvas = null;
+
+        window.onload = () => {
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            document.getElementById('status').textContent = 'Ready';
+            console.log('Page loaded');
+        };
+
+        async function loadModels() {
+            try {
+                document.getElementById('status').textContent = 'Loading models...';
+                console.log('Loading models...');
+                
+                await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+                console.log('Tiny face detector loaded');
+                
+                modelsLoaded = true;
+                document.getElementById('status').textContent = 'Models loaded!';
+                console.log('Models loaded successfully');
+            } catch (error) {
+                console.error('Error loading models:', error);
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function startCamera() {
+            try {
+                document.getElementById('status').textContent = 'Starting camera...';
+                console.log('Starting camera...');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 320, height: 240 } 
+                });
+                
+                video.srcObject = stream;
+                video.play();
+                
+                document.getElementById('status').textContent = 'Camera started!';
+                console.log('Camera started');
+            } catch (error) {
+                console.error('Camera error:', error);
+                document.getElementById('status').textContent = 'Camera error: ' + error.message;
+            }
+        }
+
+        async function testDetection() {
+            if (!modelsLoaded) {
+                document.getElementById('status').textContent = 'Models not loaded!';
+                return;
+            }
+
+            if (!video.srcObject) {
+                document.getElementById('status').textContent = 'Camera not started!';
+                return;
+            }
+
+            try {
+                console.log('Testing face detection...');
+                document.getElementById('status').textContent = 'Detecting faces...';
+                
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+                console.log('Detections:', detections);
+                
+                // Draw video frame
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, 320, 240);
+                
+                // Draw detections
+                if (detections.length > 0) {
+                    const resizedDetections = faceapi.resizeResults(detections, { width: 320, height: 240 });
+                    faceapi.draw.drawDetections(canvas, resizedDetections);
+                    document.getElementById('status').textContent = `Found ${detections.length} faces!`;
+                } else {
+                    document.getElementById('status').textContent = 'No faces detected';
+                }
+                
+            } catch (error) {
+                console.error('Detection error:', error);
+                document.getElementById('status').textContent = 'Detection error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
+

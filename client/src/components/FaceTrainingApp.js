@@ -29,3 +29,4 @@ const FaceTrainingApp = () => {
 };
 
 export default FaceTrainingApp;
+

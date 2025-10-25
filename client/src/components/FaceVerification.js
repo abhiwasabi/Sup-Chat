@@ -93,6 +93,12 @@ const FaceVerification = () => {
         setKnownFaces(faces);
         console.log(`📚 Loaded ${faces.length} trained faces for verification`);
         console.log('👥 Known faces:', faces.map(f => f.name));
+        console.log('📊 Face data format check:', faces.map(f => ({
+          name: f.name,
+          hasDescriptor: !!f.descriptor,
+          hasDescriptors: !!f.descriptors,
+          descriptorType: f.descriptor ? typeof f.descriptor : 'none'
+        })));
       } else {
         console.log('⚠️ No trained faces found. Please train faces first at /train');
       }
@@ -110,16 +116,32 @@ const FaceVerification = () => {
     const threshold = 0.6; // Distance threshold for recognition
 
     for (const knownFace of knownFaces) {
-      const distance = faceapi.euclideanDistance(descriptor, knownFace.descriptor);
-      
-      if (distance < threshold && distance < bestDistance) {
-        bestMatch = {
-          id: knownFace.id,
-          name: knownFace.name,
-          confidence: 1 - distance, // Convert distance to confidence
-          distance: distance
-        };
-        bestDistance = distance;
+      // Handle both old format (array of descriptors) and new format (single descriptor)
+      let descriptors;
+      if (knownFace.descriptors && Array.isArray(knownFace.descriptors)) {
+        // Old format: array of descriptors
+        descriptors = knownFace.descriptors;
+      } else if (knownFace.descriptor && Array.isArray(knownFace.descriptor)) {
+        // New format: single averaged descriptor
+        descriptors = [knownFace.descriptor];
+      } else {
+        console.warn(`⚠️ Unknown descriptor format for ${knownFace.name}:`, knownFace);
+        continue;
+      }
+
+      // Compare against all descriptors for this person
+      for (const knownDescriptor of descriptors) {
+        const distance = faceapi.euclideanDistance(descriptor, knownDescriptor);
+        
+        if (distance < threshold && distance < bestDistance) {
+          bestMatch = {
+            id: knownFace.id,
+            name: knownFace.name,
+            confidence: 1 - distance, // Convert distance to confidence
+            distance: distance
+          };
+          bestDistance = distance;
+        }
       }
     }
 

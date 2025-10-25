@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Detection Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+    <h1>Face Detection Test</h1>
+    <video id="video" width="640" height="480" autoplay muted></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <div id="status">Loading...</div>
+    <button onclick="startTest()">Start Test</button>
+    <button onclick="detectFaces()">Detect Faces</button>
+
+    <script>
+        let isModelsLoaded = false;
+
+        async function loadModels() {
+            try {
+                console.log('Loading face-api models...');
+                console.log('Testing model accessibility...');
+                
+                // Test if models are accessible
+                const response = await fetch('/models/tiny_face_detector_model-weights_manifest.json');
+                if (!response.ok) {
+                    throw new Error(`Models not accessible: ${response.status}`);
+                }
+                console.log('Models are accessible');
+                
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+                    faceapi.nets.faceExpressionNet.loadFromUri('/models')
+                ]);
+                console.log('Models loaded successfully');
+                isModelsLoaded = true;
+                document.getElementById('status').textContent = 'Models loaded!';
+            } catch (error) {
+                console.error('Error loading models:', error);
+                document.getElementById('status').textContent = 'Error loading models: ' + error.message;
+            }
+        }
+
+        async function startTest() {
+            try {
+                console.log('Requesting camera access...');
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'
+                    } 
+                });
+                console.log('Camera access granted');
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    console.log('Video metadata loaded');
+                    video.play();
+                    document.getElementById('status').textContent = 'Camera started!';
+                };
+                video.onerror = (e) => {
+                    console.error('Video error:', e);
+                    document.getElementById('status').textContent = 'Video error: ' + e.message;
+                };
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                document.getElementById('status').textContent = 'Camera error: ' + error.message;
+            }
+        }
+
+        async function detectFaces() {
+            if (!isModelsLoaded) {
+                document.getElementById('status').textContent = 'Models not loaded yet!';
+                return;
+            }
+
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            try {
+                console.log('Detecting faces...');
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+                console.log('Found', detections.length, 'faces');
+
+                // Draw video frame
+                ctx.drawImage(video, 0, 0, 640, 480);
+
+                // Draw detections
+                const resizedDetections = faceapi.resizeResults(detections, { width: 640, height: 480 });
+                faceapi.draw.drawDetections(canvas, resizedDetections);
+
+                document.getElementById('status').textContent = `Found ${detections.length} faces`;
+            } catch (error) {
+                console.error('Error detecting faces:', error);
+                document.getElementById('status').textContent = 'Detection error: ' + error.message;
+            }
+        }
+
+        // Load models on page load
+        window.onload = () => {
+            console.log('Page loaded, starting model loading...');
+            loadModels();
+        };
+    </script>
+</body>
+</html>

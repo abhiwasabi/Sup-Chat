@@ -403,6 +403,14 @@ io.on('connection', (socket) => {
     const { streamId, person, confidence, expressions } = data;
     console.log(`👤 PERSON DETECTED: ${person} in stream ${streamId} (confidence: ${confidence})`);
     
+    // Broadcast face detection to all clients in the stream
+    io.to(streamId).emit('face-detected', {
+      person,
+      confidence,
+      expressions,
+      timestamp: new Date().toISOString()
+    });
+    
     // Person-specific responses
     const personResponses = {
       'Mehdi': [
@@ -464,6 +472,12 @@ io.on('connection', (socket) => {
     const { streamId, person } = data;
     console.log(`👋 Face left: ${person} from stream ${streamId}`);
     
+    // Broadcast face left event to all clients in the stream
+    io.to(streamId).emit('face-left', {
+      person,
+      timestamp: new Date().toISOString()
+    });
+    
     // Generate contextual chat message for face leaving
     const faceLeftMessage = {
       id: Date.now() + Math.random(),
@@ -480,6 +494,11 @@ io.on('connection', (socket) => {
   socket.on('faces-left', (data) => {
     const { streamId } = data;
     console.log(`👋 All faces left stream ${streamId}`);
+    
+    // Broadcast all faces left event to all clients in the stream
+    io.to(streamId).emit('faces-left', {
+      timestamp: new Date().toISOString()
+    });
     
     // Generate contextual chat message when all faces leave
     const allFacesLeftMessage = {

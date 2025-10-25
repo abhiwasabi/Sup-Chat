@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Face Detection Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+    <h1>Simple Face Detection Test</h1>
+    <div id="status">Loading...</div>
+    <button onclick="testBasicDetection()">Test Basic Detection</button>
+    <button onclick="testModelAccess()">Test Model Access</button>
+
+    <script>
+        async function testModelAccess() {
+            try {
+                console.log('Testing model access...');
+                const response = await fetch('/models/tiny_face_detector_model-weights_manifest.json');
+                console.log('Model response:', response.status);
+                if (response.ok) {
+                    document.getElementById('status').textContent = 'Models accessible!';
+                } else {
+                    document.getElementById('status').textContent = 'Models not accessible: ' + response.status;
+                }
+            } catch (error) {
+                console.error('Model access error:', error);
+                document.getElementById('status').textContent = 'Model access error: ' + error.message;
+            }
+        }
+
+        async function testBasicDetection() {
+            try {
+                console.log('Testing basic face-api functionality...');
+                
+                // Test if face-api is loaded
+                if (typeof faceapi === 'undefined') {
+                    throw new Error('face-api.js not loaded');
+                }
+                
+                console.log('face-api.js loaded successfully');
+                console.log('Available nets:', Object.keys(faceapi.nets));
+                
+                // Test model loading
+                console.log('Loading tiny face detector...');
+                await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+                console.log('Tiny face detector loaded');
+                
+                document.getElementById('status').textContent = 'Basic detection works!';
+                
+            } catch (error) {
+                console.error('Basic detection error:', error);
+                document.getElementById('status').textContent = 'Basic detection error: ' + error.message;
+            }
+        }
+
+        window.onload = () => {
+            console.log('Simple test page loaded');
+            document.getElementById('status').textContent = 'Ready for testing';
+        };
+    </script>
+</body>
+</html>
+

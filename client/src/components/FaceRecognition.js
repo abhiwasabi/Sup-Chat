@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as faceapi from 'face-api.js';
 import './FaceRecognition.css';
 
-const FaceRecognition = ({ socket, streamId }) => {
+const FaceRecognition = ({ socket, streamId, isStreaming }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -10,10 +10,13 @@ const FaceRecognition = ({ socket, streamId }) => {
   const [knownFaces, setKnownFaces] = useState([]);
   const [isDetecting, setIsDetecting] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [lastDetectionTime, setLastDetectionTime] = useState(0);
 
   useEffect(() => {
+    console.log('🚀 FaceRecognition component mounted');
     initializeFaceAPI();
     return () => {
+      console.log('🧹 FaceRecognition component unmounting');
       if (videoRef.current) {
         const stream = videoRef.current.srcObject;
         if (stream) {
@@ -22,6 +25,26 @@ const FaceRecognition = ({ socket, streamId }) => {
       }
     };
   }, []);
+
+  // Auto-start camera when Face API is initialized (but don't start detection yet)
+  useEffect(() => {
+    if (isInitialized) {
+      console.log('🎯 Face API initialized, starting camera...');
+      startCamera();
+    }
+  }, [isInitialized]);
+
+  // Control face detection based on streaming state
+  useEffect(() => {
+    console.log(`🎬 Streaming state changed: ${isStreaming}, Face API ready: ${isInitialized}`);
+    if (isStreaming && isInitialized) {
+      console.log('🎬 Stream started - starting continuous face detection...');
+      startFaceDetection();
+    } else if (!isStreaming) {
+      console.log('⏹️ Stream stopped - stopping face detection...');
+      stopDetection();
+    }
+  }, [isStreaming, isInitialized]);
 
   const initializeFaceAPI = async () => {
     try {
@@ -55,9 +78,20 @@ const FaceRecognition = ({ socket, streamId }) => {
         
         // Reconstruct faceapi.LabeledFaceDescriptors objects
         const reconstructedFaces = parsedFaces.map(person => {
-          const descriptors = person.descriptors.map(d => new Float32Array(d));
-          return new faceapi.LabeledFaceDescriptors(person.label, descriptors);
-        });
+          // Handle both old format (array of descriptors) and new format (single descriptor)
+          let descriptors;
+          if (person.descriptors && Array.isArray(person.descriptors)) {
+            // Old format: array of descriptors
+            descriptors = person.descriptors.map(d => new Float32Array(d));
+          } else if (person.descriptor && Array.isArray(person.descriptor)) {
+            // New format: single averaged descriptor
+            descriptors = [new Float32Array(person.descriptor)];
+          } else {
+            console.warn(`⚠️ Unknown descriptor format for ${person.name}:`, person);
+            return null;
+          }
+          return new faceapi.LabeledFaceDescriptors(person.name, descriptors);
+        }).filter(Boolean); // Remove any null entries
         
         console.log(`📚 Reconstructed ${reconstructedFaces.length} trained faces from storage`);
         console.log('👥 Known faces:', reconstructedFaces.map(f => f.label));
@@ -76,27 +110,28 @@ const FaceRecognition = ({ socket, streamId }) => {
   const recognizeFace = async (descriptor) => {
     if (knownFaces.length === 0) return null;
 
-    try {
-      // Create face matcher with reconstructed labeled descriptors
-      const faceMatcher = new faceapi.FaceMatcher(knownFaces, 0.6);
-      
-      // Find best match
-      const bestMatch = faceMatcher.findBestMatch(descriptor);
-      
-      if (bestMatch.label !== 'unknown') {
-        return {
-          id: bestMatch.label,
-          name: bestMatch.label,
-          confidence: 1 - bestMatch.distance,
-          distance: bestMatch.distance
-        };
+    let bestMatch = null;
+    let bestDistance = Infinity;
+    const threshold = 0.6; // Distance threshold for recognition
+
+    for (const knownFace of knownFaces) {
+      // knownFace is a LabeledFaceDescriptors object
+      // We need to compare against all descriptors for this person
+      for (const knownDescriptor of knownFace.descriptors) {
+        const distance = faceapi.euclideanDistance(descriptor, knownDescriptor);
+        
+        if (distance < threshold && distance < bestDistance) {
+          bestMatch = {
+            id: knownFace.label, // Use label as ID
+            name: knownFace.label, // Use label as name
+            confidence: 1 - distance // Convert distance to confidence
+          };
+          bestDistance = distance;
+        }
       }
-      
-      return null;
-    } catch (error) {
-      console.error('❌ Error in face recognition:', error);
-      return null;
     }
+
+    return bestMatch;
   };
 
   // Show notification overlay
@@ -130,8 +165,9 @@ const FaceRecognition = ({ socket, streamId }) => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
+          console.log('🎥 Video metadata loaded, camera ready for detection...');
           videoRef.current.play();
-          startFaceDetection();
+          // Don't start detection automatically - wait for stream to start
         };
       }
     } catch (error) {
@@ -165,9 +201,19 @@ const FaceRecognition = ({ socket, streamId }) => {
         return;
       }
 
+      // Throttle detection to every 500ms to prevent excessive processing
+      const now = Date.now();
+      if (now - lastDetectionTime < 500) {
+        if (isDetecting) {
+          requestAnimationFrame(detectFaces);
+        }
+        return;
+      }
+      setLastDetectionTime(now);
+
       try {
         if (isInitialized) {
-          console.log('🔍 Running face detection...');
+          console.log('🔍 Running continuous face detection...');
           // First, just detect faces (like the working test page)
           const detections = await faceapi.detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions());
           console.log(`👥 Found ${detections.length} faces`);
@@ -235,58 +281,71 @@ const FaceRecognition = ({ socket, streamId }) => {
       return;
     }
 
-    // Use the largest face for recognition
-    const largestFace = detections.reduce((prev, current) => 
-      (current.detection.box.area > prev.detection.box.area) ? current : prev
-    );
-
-    // Recognize the face
-    const recognizedFace = await recognizeFace(largestFace.descriptor);
+    // Process all detected faces, not just the largest one
+    const recognizedFaces = [];
     
-    if (recognizedFace) {
-      const newFace = {
-        id: Date.now() + Math.random(),
-        name: recognizedFace.name,
-        confidence: recognizedFace.confidence,
-        recognitionConfidence: recognizedFace.confidence,
-        expressions: largestFace.expressions || {},
-        firstSeen: new Date().toISOString(),
-        lastSeen: new Date().toISOString()
-      };
+    for (const detection of detections) {
+      const recognizedFace = await recognizeFace(detection.descriptor);
       
-      setCurrentFaces([newFace]);
-
-      console.log(`✅ RECOGNIZED: ${recognizedFace.name} (confidence: ${(recognizedFace.confidence * 100).toFixed(1)}%)`);
-      
-      showNotification(
-        `👤 ${recognizedFace.name.toUpperCase()} detected! (${(recognizedFace.confidence * 100).toFixed(1)}% confidence)`,
-        'success'
-      );
-      
-      socket.emit('face-detected', {
-        streamId,
-        person: recognizedFace.name,
-        confidence: recognizedFace.confidence,
-        expressions: largestFace.expressions
-      });
-    } else {
-      const unknownFace = {
-        id: Date.now() + Math.random(),
-        name: 'Unknown Person',
-        confidence: 0,
-        recognitionConfidence: 0,
-        expressions: largestFace.expressions || {},
-        firstSeen: new Date().toISOString(),
-        lastSeen: new Date().toISOString()
-      };
-      
-      setCurrentFaces([unknownFace]);
-      console.log('❓ Unknown person detected');
-      
-      showNotification(
-        `❓ Unknown person detected - not in training data`,
-        'warning'
-      );
+      if (recognizedFace) {
+        recognizedFaces.push({
+          id: Date.now() + Math.random(),
+          name: recognizedFace.name,
+          confidence: recognizedFace.confidence,
+          recognitionConfidence: recognizedFace.confidence,
+          expressions: detection.expressions || {},
+          firstSeen: new Date().toISOString(),
+          lastSeen: new Date().toISOString()
+        });
+        
+        console.log(`✅ RECOGNIZED: ${recognizedFace.name} (confidence: ${(recognizedFace.confidence * 100).toFixed(1)}%)`);
+        
+        // Emit face detection event for each recognized face
+        socket.emit('face-detected', {
+          streamId,
+          person: recognizedFace.name,
+          confidence: recognizedFace.confidence,
+          expressions: detection.expressions
+        });
+      } else {
+        recognizedFaces.push({
+          id: Date.now() + Math.random(),
+          name: 'Unknown Person',
+          confidence: 0,
+          recognitionConfidence: 0,
+          expressions: detection.expressions || {},
+          firstSeen: new Date().toISOString(),
+          lastSeen: new Date().toISOString()
+        });
+        
+        console.log('❓ Unknown person detected');
+        
+        // Emit face detection event for unknown person
+        socket.emit('face-detected', {
+          streamId,
+          person: 'Unknown Person',
+          confidence: 0,
+          expressions: detection.expressions
+        });
+      }
+    }
+    
+    setCurrentFaces(recognizedFaces);
+    
+    // Show notification for the first recognized face (or unknown if none recognized)
+    const firstFace = recognizedFaces[0];
+    if (firstFace) {
+      if (firstFace.name !== 'Unknown Person') {
+        showNotification(
+          `👤 ${firstFace.name.toUpperCase()} detected! (${(firstFace.recognitionConfidence * 100).toFixed(1)}% confidence)`,
+          'success'
+        );
+      } else {
+        showNotification(
+          `❓ Unknown person detected - not in training data`,
+          'warning'
+        );
+      }
     }
   };
 
@@ -337,7 +396,7 @@ const FaceRecognition = ({ socket, streamId }) => {
         )}
       </div>
       
-      <div className="camera-section">
+      <div className="camera-section" style={{ display: 'none' }}>
         <div className="video-container">
           <video
             ref={videoRef}
@@ -350,116 +409,11 @@ const FaceRecognition = ({ socket, streamId }) => {
             width="640"
             height="480"
             className="face-canvas"
+            style={{ display: 'none' }}
           />
         </div>
-        
-        <div className="controls">
-          <button 
-            onClick={startCamera}
-            disabled={!isInitialized}
-            className="btn btn-primary"
-          >
-            {isInitialized ? '🎥 Start Camera' : '⏳ Loading Models...'}
-          </button>
-          
-          <button 
-            onClick={startFaceDetection}
-            disabled={isDetecting || !isInitialized}
-            className="btn btn-primary"
-          >
-            🔍 Start Detection
-          </button>
-          
-          <button 
-            onClick={stopDetection}
-            disabled={!isDetecting}
-            className="btn btn-secondary"
-          >
-            🛑 Stop Detection
-          </button>
-          
-          <button 
-            onClick={() => showNotification('🧪 Test notification!', 'success')}
-            className="btn btn-info"
-          >
-            🧪 Test Notification
-          </button>
-          
-          <button 
-            onClick={async () => {
-              console.log('🧪 Simple face detection test (like /verify page)...');
-              if (videoRef.current && isInitialized) {
-                try {
-                  console.log('🧪 Running simple face detection...');
-                  const detections = await faceapi.detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions());
-                  console.log(`🧪 Simple test found ${detections.length} faces`);
-                  
-                  if (detections.length > 0) {
-                    console.log('🧪 Face detection works! Now testing recognition...');
-                    // Test recognition with the detected faces
-                    const detailedDetections = await faceapi
-                      .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-                      .withFaceLandmarks()
-                      .withFaceDescriptors();
-                    console.log(`🧪 Detailed detections: ${detailedDetections.length} faces`);
-                    
-                    if (detailedDetections.length > 0) {
-                      console.log('🧪 Testing face recognition...');
-                      await processFaceRecognition(detailedDetections);
-                    }
-                  }
-                } catch (err) {
-                  console.error('🧪 Simple test error:', err);
-                }
-              } else {
-                console.log('🧪 Simple test failed - camera or models not ready');
-              }
-            }}
-            className="btn btn-success"
-          >
-            🧪 Simple Test (Like /verify)
-          </button>
-        </div>
       </div>
 
-      <div className="face-info">
-        <h3>👥 Current Faces in Stream</h3>
-        <div className="faces-list">
-          {currentFaces.length === 0 ? (
-            <p className="no-faces">No faces detected</p>
-          ) : (
-            currentFaces.map((face, index) => (
-              <div key={index} className="face-item">
-                <div className="face-info">
-                  <span className="face-name">{face.name}</span>
-                  {face.recognitionConfidence > 0 && (
-                    <span className="recognition-confidence">
-                      Recognition: {(face.recognitionConfidence * 100).toFixed(1)}%
-                    </span>
-                  )}
-                </div>
-                <span className="face-confidence">
-                  Detection: {(face.confidence * 100).toFixed(1)}%
-                </span>
-              </div>
-            ))
-          )}
-        </div>
-        
-        {/* Debug: Show notifications count */}
-        <div style={{ marginTop: '10px', padding: '10px', background: '#f0f0f0', borderRadius: '5px' }}>
-          <strong>Debug:</strong> {notifications.length} notifications active
-          {notifications.map(n => (
-            <div key={n.id} style={{ fontSize: '12px', color: '#666' }}>
-              {n.message}
-            </div>
-          ))}
-        </div>
-
-        <div className="training-link">
-          <p>🎓 <a href="/train" target="_blank">Train faces for recognition</a></p>
-        </div>
-      </div>
     </div>
   );
 };
