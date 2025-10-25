@@ -282,6 +282,209 @@
   margin-bottom: 8px;
 }
 
+/* Face Verification Styles */
+.face-verification-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #0f0f0f;
+  min-height: 100vh;
+  color: #ffffff;
+}
+
+.verification-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.verification-header h1 {
+  color: #4CAF50;
+  margin-bottom: 10px;
+}
+
+.verification-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.recognition-results {
+  flex: 1;
+  padding: 20px;
+  background: #2a2a2a;
+  border-radius: 8px;
+}
+
+.current-recognition {
+  background: #333;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.recognition-info h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.5em;
+}
+
+.recognition-info p {
+  margin: 5px 0;
+  color: #ccc;
+}
+
+.no-recognition, .no-history, .no-trained-faces {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+.history-controls {
+  margin-bottom: 15px;
+}
+
+.btn-small {
+  padding: 5px 10px;
+  font-size: 0.9em;
+}
+
+.recognition-history {
+  max-height: 300px;
+  overflow-y: auto;
+  background: #333;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 5px 0;
+  background: #444;
+  border-radius: 6px;
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-name {
+  font-weight: 600;
+  font-size: 1.1em;
+}
+
+.history-confidence {
+  color: #ccc;
+  font-size: 0.9em;
+}
+
+.history-time {
+  color: #888;
+  font-size: 0.8em;
+}
+
+.trained-faces-info {
+  margin-top: 20px;
+  padding: 15px;
+  background: #333;
+  border-radius: 8px;
+}
+
+.trained-faces-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trained-face-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: #444;
+  border-radius: 6px;
+}
+
+.face-name {
+  font-weight: 600;
+  color: #4CAF50;
+}
+
+.face-trained-at {
+  color: #ccc;
+  font-size: 0.9em;
+}
+
+.verification-instructions {
+  background: #2a2a2a;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.verification-instructions h3 {
+  color: #4CAF50;
+  margin-bottom: 15px;
+}
+
+.verification-instructions ol {
+  color: #ccc;
+  line-height: 1.6;
+}
+
+.verification-instructions a {
+  color: #4CAF50;
+  text-decoration: none;
+}
+
+.verification-instructions a:hover {
+  text-decoration: underline;
+}
+
+/* Verification Status Indicators */
+.verification-status {
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.status-active {
+  background: rgba(0, 255, 0, 0.1);
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-inactive {
+  background: rgba(255, 0, 0, 0.1);
+  border: 2px solid #ff0000;
+  color: #ff0000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-indicator {
+  font-size: 1.2em;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .face-recognition-container {
@@ -296,4 +499,104 @@
   .training-header h1 {
     font-size: 2rem;
   }
+  
+  .verification-container {
+    flex-direction: column;
+  }
+}
+
+/* Notification Overlay Styles */
+.notification-overlay {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.notification {
+  padding: 15px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+  max-width: 300px;
+  word-wrap: break-word;
+}
+
+.notification-success {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border-left: 4px solid #2E7D32;
+}
+
+.notification-warning {
+  background: linear-gradient(135deg, #FF9800, #F57C00);
+  border-left: 4px solid #E65100;
+}
+
+.notification-error {
+  background: linear-gradient(135deg, #F44336, #D32F2F);
+  border-left: 4px solid #B71C1C;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Face Status Display - Bottom Right */
+.face-status-display {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+.face-status {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.face-status.no-face {
+  background: rgba(255, 152, 0, 0.9);
+}
+
+.status-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.status-info {
+  flex: 1;
+}
+
+.status-name {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.status-confidence {
+  font-size: 12px;
+  opacity: 0.8;
 }

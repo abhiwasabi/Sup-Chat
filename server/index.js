@@ -401,14 +401,42 @@ io.on('connection', (socket) => {
   // Handle face recognition events
   socket.on('face-detected', (data) => {
     const { streamId, person, confidence, expressions } = data;
-    console.log(`👤 Face detected: ${person} in stream ${streamId} (confidence: ${confidence})`);
+    console.log(`👤 PERSON DETECTED: ${person} in stream ${streamId} (confidence: ${confidence})`);
+    
+    // Person-specific responses
+    const personResponses = {
+      'Mehdi': [
+        "Mehdi is here! The tech wizard has arrived! 🧙‍♂️",
+        "Hey Mehdi! Ready to code some magic? ✨",
+        "Mehdi just joined - time for some serious programming! 💻"
+      ],
+      'Abhi': [
+        "Abhi is in the house! The blue jacket legend! 🔥",
+        "Welcome Abhi! Let's make this stream epic! 🚀",
+        "Abhi just joined - the energy level just went up! ⚡"
+      ],
+      'Badri': [
+        "Badri is here! The gaming streamer with the beard! 🎮",
+        "Hey Badri! Ready to dominate some games? 🏆",
+        "Badri just joined - this stream is about to be legendary! 🌟"
+      ],
+      'Unknown Person': [
+        "Someone new just joined! Welcome to the stream! 👋",
+        "A new face in the stream! Say hello! 😊",
+        "Welcome to the stream! Great to have you here! 🎉"
+      ]
+    };
+    
+    // Get random response for the person
+    const responses = personResponses[person] || personResponses['Unknown Person'];
+    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
     
     // Generate contextual chat message for face detection
     const faceDetectionMessage = {
       id: Date.now() + Math.random(),
       username: "System",
-      message: `Yo, ${person} just joined the stream! 🎉`,
-      emoji: "🎉",
+      message: randomResponse,
+      emoji: "👤",
       timestamp: new Date().toISOString(),
       isFaceDetection: true
     };

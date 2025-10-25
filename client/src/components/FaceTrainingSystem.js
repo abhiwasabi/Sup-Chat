@@ -2,25 +2,25 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as faceapi from 'face-api.js';
 import './FaceRecognition.css';
 
-const FaceTraining = ({ socket, streamId }) => {
+const FaceTrainingSystem = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [currentFaces, setCurrentFaces] = useState([]);
   const [knownFaces, setKnownFaces] = useState([]);
-  const [isDetecting, setIsDetecting] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
   const [trainingProgress, setTrainingProgress] = useState({});
+  const [currentFaces, setCurrentFaces] = useState([]);
 
-  // Known facial profiles (3 people)
-  const facialProfiles = [
-    { id: 'abhi', name: 'Abhi', description: 'Wearing blue jacket, no glasses' },
-    { id: 'mehdi', name: 'Mehdi', description: 'Wearing white shirt, round glasses' },
-    { id: 'badri', name: 'Badri', description: 'Gaming streamer with beard' }
+  // Predefined people to train
+  const peopleToTrain = [
+    { id: 'mehdi', name: 'Mehdi', description: 'Mehdi - wearing white shirt, round glasses' },
+    { id: 'abhi', name: 'Abhi', description: 'Abhi - wearing blue jacket, no glasses' },
+    { id: 'badri', name: 'Badri', description: 'Badri - gaming streamer with beard' }
   ];
 
   useEffect(() => {
     initializeFaceAPI();
+    loadSavedFaces();
     return () => {
       if (videoRef.current) {
         const stream = videoRef.current.srcObject;
@@ -33,31 +33,9 @@ const FaceTraining = ({ socket, streamId }) => {
 
   const initializeFaceAPI = async () => {
     try {
-      console.log('🎭 Initializing Face API...');
+      console.log('🎭 Initializing Face API for training...');
       
-      // Check if models are accessible first
-      const modelPaths = [
-        '/models/tiny_face_detector_model-weights_manifest.json',
-        '/models/face_landmark_68_model-weights_manifest.json',
-        '/models/face_recognition_model-weights_manifest.json',
-        '/models/face_expression_model-weights_manifest.json'
-      ];
-      
-      console.log('🔍 Checking model accessibility...');
-      for (const path of modelPaths) {
-        try {
-          const response = await fetch(path);
-          if (!response.ok) {
-            throw new Error(`Model not found: ${path}`);
-          }
-          console.log(`✅ Model accessible: ${path}`);
-        } catch (err) {
-          console.error(`❌ Model not accessible: ${path}`, err);
-        }
-      }
-      
-      // Load face-api models with correct paths
-      console.log('📥 Loading face-api models...');
+      // Load face-api models
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
         faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
@@ -67,29 +45,19 @@ const FaceTraining = ({ socket, streamId }) => {
 
       console.log('✅ Face API models loaded successfully');
       setIsInitialized(true);
-      
-      // Load saved face descriptors from localStorage
-      loadSavedFaces();
     } catch (error) {
       console.error('❌ Error loading Face API models:', error);
-      console.error('Full error details:', error.message, error.stack);
-      
-      // Set a timeout to show error state
-      setTimeout(() => {
-        console.log('⏰ Model loading timeout - check if models are properly served');
-        setIsInitialized(false);
-      }, 10000);
     }
   };
 
   // Load saved face descriptors from localStorage
   const loadSavedFaces = () => {
     try {
-      const savedFaces = localStorage.getItem('knownFaces');
+      const savedFaces = localStorage.getItem('trainedFaces');
       if (savedFaces) {
         const faces = JSON.parse(savedFaces);
         setKnownFaces(faces);
-        console.log(`📚 Loaded ${faces.length} known faces from storage`);
+        console.log(`📚 Loaded ${faces.length} trained faces from storage`);
       }
     } catch (error) {
       console.error('❌ Error loading saved faces:', error);
@@ -99,78 +67,41 @@ const FaceTraining = ({ socket, streamId }) => {
   // Save face descriptors to localStorage
   const saveFaces = (faces) => {
     try {
-      localStorage.setItem('knownFaces', JSON.stringify(faces));
+      localStorage.setItem('trainedFaces', JSON.stringify(faces));
       console.log(`💾 Saved ${faces.length} faces to storage`);
     } catch (error) {
       console.error('❌ Error saving faces:', error);
     }
   };
 
-  // Recognize a face by comparing descriptor against known faces
-  const recognizeFace = async (descriptor) => {
-    if (knownFaces.length === 0) return null;
-
-    let bestMatch = null;
-    let bestDistance = Infinity;
-    const threshold = 0.6; // Distance threshold for recognition
-
-    for (const knownFace of knownFaces) {
-      const distance = faceapi.euclideanDistance(descriptor, knownFace.descriptor);
-      
-      if (distance < threshold && distance < bestDistance) {
-        bestMatch = {
-          id: knownFace.id,
-          name: knownFace.name,
-          confidence: 1 - distance // Convert distance to confidence
-        };
-        bestDistance = distance;
-      }
+  // Train a specific person
+  const trainPerson = async (personId, personName) => {
+    if (!videoRef.current || !isInitialized) {
+      console.log('❌ Camera or models not ready for training');
+      return;
     }
 
-    return bestMatch;
-  };
-
-  // Get the dominant emotion from face expressions
-  const getDominantEmotion = (expressions) => {
-    const emotions = [
-      { emotion: 'happy', value: expressions.happy },
-      { emotion: 'sad', value: expressions.sad },
-      { emotion: 'angry', value: expressions.angry },
-      { emotion: 'fearful', value: expressions.fearful },
-      { emotion: 'disgusted', value: expressions.disgusted },
-      { emotion: 'surprised', value: expressions.surprised },
-      { emotion: 'neutral', value: expressions.neutral }
-    ];
-
-    const dominant = emotions.reduce((prev, current) => 
-      (current.value > prev.value) ? current : prev
-    );
-
-    return {
-      emotion: dominant.emotion,
-      confidence: dominant.value
-    };
-  };
-
-  // Train the system with a new face
-  const trainFace = async (profileId, profileName) => {
-    if (!videoRef.current || !isInitialized) return;
-
     setIsTraining(true);
-    setTrainingProgress({ [profileId]: 0 });
+    setTrainingProgress({ [personId]: 0 });
 
     try {
-      console.log(`🎓 Training face for ${profileName}...`);
+      console.log(`🎓 Starting training for ${personName}...`);
+      console.log('📹 Camera ready:', !!videoRef.current);
+      console.log('🧠 Models ready:', isInitialized);
       
       // Capture multiple frames for better training
       const descriptors = [];
-      const captureCount = 5;
+      const captureCount = 10; // Capture 10 frames for better accuracy
       
       for (let i = 0; i < captureCount; i++) {
+        console.log(`📸 Capturing frame ${i + 1}/${captureCount} for ${personName}...`);
+        
         const detections = await faceapi
           .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
           .withFaceLandmarks()
           .withFaceDescriptors();
+
+        console.log(`🔍 Found ${detections.length} faces in frame ${i + 1}`);
 
         if (detections.length > 0) {
           // Use the largest face (most likely the person we're training)
@@ -179,14 +110,18 @@ const FaceTraining = ({ socket, streamId }) => {
           );
           
           descriptors.push(largestFace.descriptor);
-          console.log(`📸 Captured frame ${i + 1}/${captureCount} for ${profileName}`);
+          console.log(`✅ Captured descriptor for ${personName} (frame ${i + 1})`);
+        } else {
+          console.log(`⚠️ No face detected in frame ${i + 1} - make sure face is visible`);
         }
 
-        setTrainingProgress({ [profileId]: Math.round(((i + 1) / captureCount) * 100) });
+        setTrainingProgress({ [personId]: Math.round(((i + 1) / captureCount) * 100) });
         
         // Wait between captures
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
+
+      console.log(`📊 Collected ${descriptors.length} descriptors for ${personName}`);
 
       if (descriptors.length > 0) {
         // Average the descriptors for better recognition
@@ -196,22 +131,28 @@ const FaceTraining = ({ socket, streamId }) => {
 
         // Add to known faces
         const newFace = {
-          id: profileId,
-          name: profileName,
+          id: personId,
+          name: personName,
           descriptor: averagedDescriptor,
           trainedAt: new Date().toISOString()
         };
 
-        const updatedFaces = [...knownFaces.filter(f => f.id !== profileId), newFace];
+        const updatedFaces = [...knownFaces.filter(f => f.id !== personId), newFace];
         setKnownFaces(updatedFaces);
         saveFaces(updatedFaces);
 
-        console.log(`✅ Successfully trained face for ${profileName}`);
+        console.log(`✅ Successfully trained face for ${personName}!`);
+        console.log(`💾 Saved to localStorage. Total trained faces: ${updatedFaces.length}`);
+        
+        // Show success message
+        alert(`✅ Successfully trained ${personName}! The system can now recognize this person.`);
       } else {
-        console.error(`❌ No faces detected during training for ${profileName}`);
+        console.error(`❌ No faces detected during training for ${personName}`);
+        alert(`❌ No faces detected during training. Make sure your face is clearly visible in the camera.`);
       }
     } catch (error) {
-      console.error(`❌ Error training face for ${profileName}:`, error);
+      console.error(`❌ Error training face for ${personName}:`, error);
+      alert(`❌ Training failed: ${error.message}`);
     } finally {
       setIsTraining(false);
       setTrainingProgress({});
@@ -239,9 +180,6 @@ const FaceTraining = ({ socket, streamId }) => {
   const startFaceDetection = () => {
     if (!isInitialized) return;
 
-    setIsDetecting(true);
-    console.log('🔍 Starting face detection...');
-    
     const detectFaces = async () => {
       if (!videoRef.current || !canvasRef.current) return;
 
@@ -263,6 +201,31 @@ const FaceTraining = ({ socket, streamId }) => {
         faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
         faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
 
+        // Show face count and status
+        const ctx = canvas.getContext('2d');
+        if (detections.length > 0) {
+          ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+          ctx.fillRect(10, 10, 200, 30);
+          ctx.fillStyle = '#000000';
+          ctx.font = '16px Arial';
+          ctx.fillText(`Faces detected: ${detections.length}`, 15, 30);
+        } else {
+          ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+          ctx.fillRect(10, 10, 200, 30);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '16px Arial';
+          ctx.fillText('No faces detected', 15, 30);
+        }
+
+        // Show training status
+        if (isTraining) {
+          ctx.fillStyle = 'rgba(255, 165, 0, 0.8)';
+          ctx.fillRect(10, 50, 300, 30);
+          ctx.fillStyle = '#000000';
+          ctx.font = '16px Arial';
+          ctx.fillText('🎓 Training in progress...', 15, 70);
+        }
+
         // Process face recognition
         await processFaceRecognition(detections);
         
@@ -270,9 +233,7 @@ const FaceTraining = ({ socket, streamId }) => {
         console.error('❌ Error in face detection:', error);
       }
 
-      if (isDetecting) {
-        requestAnimationFrame(detectFaces);
-      }
+      requestAnimationFrame(detectFaces);
     };
 
     detectFaces();
@@ -280,11 +241,7 @@ const FaceTraining = ({ socket, streamId }) => {
 
   const processFaceRecognition = async (detections) => {
     if (detections.length === 0) {
-      // No faces detected
-      if (currentFaces.length > 0) {
-        console.log('👋 All faces left the stream');
-        setCurrentFaces([]);
-      }
+      setCurrentFaces([]);
       return;
     }
 
@@ -299,72 +256,61 @@ const FaceTraining = ({ socket, streamId }) => {
           id: recognizedFace.id,
           name: recognizedFace.name,
           confidence: detection.detection.score,
-          expressions: detection.expressions,
           recognitionConfidence: recognizedFace.confidence
         });
       } else {
-        // Unknown face - assign a temporary ID
+        // Unknown face
         const unknownId = `unknown_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         detectedFaces.push({
           id: unknownId,
           name: 'Unknown Person',
           confidence: detection.detection.score,
-          expressions: detection.expressions,
           recognitionConfidence: 0
         });
       }
     }
 
-    // Check for new faces
-    const newFaces = detectedFaces.filter(face => 
-      !currentFaces.some(current => current.id === face.id)
-    );
-
-    // Check for faces that left
-    const leftFaces = currentFaces.filter(current => 
-      !detectedFaces.some(face => face.id === current.id)
-    );
-
-    // Update current faces
     setCurrentFaces(detectedFaces);
-
-    // Log face changes for training purposes
-    newFaces.forEach(face => {
-      console.log(`🎉 New face detected: ${face.name}`);
-    });
-
-    leftFaces.forEach(face => {
-      console.log(`👋 Face left: ${face.name}`);
-    });
-
-    // Emit emotion detection events for current faces
-    detectedFaces.forEach(face => {
-      if (face.expressions) {
-        const dominantEmotion = getDominantEmotion(face.expressions);
-        if (dominantEmotion && dominantEmotion.confidence > 0.3) {
-          console.log(`😊 Emotion detected: ${dominantEmotion.emotion} (${(dominantEmotion.confidence * 100).toFixed(1)}%) for ${face.name}`);
-          // Emit emotion event to server
-          if (socket && streamId) {
-            socket.emit('emotion-detected', {
-              streamId,
-              person: face.name,
-              emotion: dominantEmotion.emotion,
-              confidence: dominantEmotion.confidence,
-              expressions: face.expressions
-            });
-          }
-        }
-      }
-    });
   };
 
-  const stopDetection = () => {
-    setIsDetecting(false);
-    if (videoRef.current) {
-      const stream = videoRef.current.srcObject;
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+  // Recognize a face by comparing descriptor against known faces
+  const recognizeFace = async (descriptor) => {
+    if (knownFaces.length === 0) return null;
+
+    let bestMatch = null;
+    let bestDistance = Infinity;
+    const threshold = 0.6; // Distance threshold for recognition
+
+    for (const knownFace of knownFaces) {
+      const distance = faceapi.euclideanDistance(descriptor, knownFace.descriptor);
+      
+      if (distance < threshold && distance < bestDistance) {
+        bestMatch = {
+          id: knownFace.id,
+          name: knownFace.name,
+          confidence: 1 - distance // Convert distance to confidence
+        };
+        bestDistance = distance;
       }
+    }
+
+    return bestMatch;
+  };
+
+  const clearTrainingData = () => {
+    localStorage.removeItem('trainedFaces');
+    setKnownFaces([]);
+    console.log('🗑️ Cleared all training data');
+  };
+
+  const debugTrainingData = () => {
+    const savedData = localStorage.getItem('trainedFaces');
+    console.log('🔍 Debug - Training data in localStorage:', savedData);
+    if (savedData) {
+      const faces = JSON.parse(savedData);
+      console.log('👥 Trained faces:', faces.map(f => ({ name: f.name, id: f.id, trainedAt: f.trainedAt })));
+    } else {
+      console.log('❌ No training data found');
     }
   };
 
@@ -402,17 +348,23 @@ const FaceTraining = ({ socket, streamId }) => {
             </button>
             
             <button 
-              onClick={stopDetection}
-              disabled={!isDetecting}
-              className="btn btn-secondary"
+              onClick={clearTrainingData}
+              className="btn btn-danger"
             >
-              🛑 Stop Detection
+              🗑️ Clear All Training Data
+            </button>
+            
+            <button 
+              onClick={debugTrainingData}
+              className="btn btn-info"
+            >
+              🔍 Debug Training Data
             </button>
           </div>
         </div>
 
         <div className="face-info">
-          <h3>👥 Current Faces in Stream</h3>
+          <h3>👥 Current Faces Detected</h3>
           <div className="faces-list">
             {currentFaces.length === 0 ? (
               <p className="no-faces">No faces detected</p>
@@ -436,16 +388,16 @@ const FaceTraining = ({ socket, streamId }) => {
           </div>
 
           <div className="known-profiles">
-            <h4>📋 Known Profiles</h4>
-            {facialProfiles.map(profile => {
-              const isTrained = knownFaces.some(face => face.id === profile.id);
-              const isCurrentlyTraining = isTraining && trainingProgress[profile.id] !== undefined;
-              const progress = trainingProgress[profile.id] || 0;
+            <h4>📋 People to Train</h4>
+            {peopleToTrain.map(person => {
+              const isTrained = knownFaces.some(face => face.id === person.id);
+              const isCurrentlyTraining = isTraining && trainingProgress[person.id] !== undefined;
+              const progress = trainingProgress[person.id] || 0;
               
               return (
-                <div key={profile.id} className="profile-item">
+                <div key={person.id} className="profile-item">
                   <div className="profile-info">
-                    <strong>{profile.name}</strong>: {profile.description}
+                    <strong>{person.name}</strong>: {person.description}
                     <span className={`training-status ${isTrained ? 'trained' : 'not-trained'}`}>
                       {isTrained ? '✅ Trained' : '❌ Not Trained'}
                     </span>
@@ -464,8 +416,8 @@ const FaceTraining = ({ socket, streamId }) => {
                   )}
                   
                   <button
-                    onClick={() => trainFace(profile.id, profile.name)}
-                    disabled={isTraining || !isDetecting}
+                    onClick={() => trainPerson(person.id, person.name)}
+                    disabled={isTraining || !isInitialized}
                     className="btn btn-train"
                   >
                     {isCurrentlyTraining ? '🎓 Training...' : '🎓 Train Face'}
@@ -483,7 +435,7 @@ const FaceTraining = ({ socket, streamId }) => {
           <li>Click "🎥 Start Camera" to begin face detection</li>
           <li>Position yourself in front of the camera</li>
           <li>Click "🎓 Train Face" for the person you want to train</li>
-          <li>Stay still while the system captures 5 frames</li>
+          <li>Stay still while the system captures 10 frames</li>
           <li>Repeat for each person you want to recognize</li>
           <li>Go back to the main stream to see recognition in action!</li>
         </ol>
@@ -492,4 +444,4 @@ const FaceTraining = ({ socket, streamId }) => {
   );
 };
 
-export default FaceTraining;
+export default FaceTrainingSystem;
