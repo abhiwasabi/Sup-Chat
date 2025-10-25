@@ -29,123 +29,94 @@ app.use(express.static(path.join(__dirname, '../client/build')));
 const activeStreams = new Map();
 const fakeAudience = [];
 
-// AI Chat personalities
+// 🧠 Realistic Twitch Chat Personalities
 const chatPersonalities = [
   {
-    name: "GamingFan123",
-    personality: "enthusiastic gamer who loves reactions and hype",
-    emoji: "🎮"
-  },
-  {
-    name: "StreamLover",
-    personality: "supportive viewer who asks questions and gives compliments",
-    emoji: "❤️"
-  },
-  {
-    name: "TechGuru",
-    personality: "technical viewer who comments on stream quality and setup",
-    emoji: "⚡"
-  },
-  {
-    name: "NewViewer",
-    personality: "curious new viewer who asks about the streamer and content",
-    emoji: "👋"
-  },
-  {
-    name: "HypeMaster",
-    personality: "energetic viewer who creates excitement and momentum",
+    name: "TheSuperHyped",
+    personality: "high-energy streamer-fan who treats every moment like a highlight reel, types in caps, uses hype slang and emotes constantly",
     emoji: "🔥"
   },
   {
-    name: "ChillViewer",
-    personality: "relaxed viewer who enjoys casual conversation",
-    emoji: "😌"
+    name: "SetupWizard",
+    personality: "the tech-savvy viewer who notices the streamer’s gear, bitrate, fps drops, and offers friendly commentary/compliments on stream quality",
+    emoji: "⚙️"
+  },
+  {
+    name: "DrySarcasmJim",
+    personality: "the sarcastic but affectionate regular, drops witty one-liners, irony, memes, a little poke at the streamer but always in good fun",
+    emoji: "😏"
+  },
+  {
+    name: "HeartfulHal",
+    personality: "the wholesome, supportive viewer — cheers everyone on, uses hearts and kind emojis, asks questions to show genuine interest rather than trolling",
+    emoji: "💖"
+  },
+  {
+    name: "MemeChaosCarl",
+    personality: "the chaotic meme-lord in chat: throws emotes, spam jokes, reacts wildly, maybe posts random “KEKW” or “PogChamp”-style lines — not mean, just wild",
+    emoji: "💀"
+  },
+  {
+    name: "SilentWatcher",
+    personality: "the low-key lurker who rarely types, but when they do it’s a short cryptic, funny or random comment — kind of mysterious and calm",
+    emoji: "👀"
+  },
+  {
+    name: "FirstTimeFiona",
+    personality: "the new viewer who’s excited but a bit awkward, asking newbie questions, dropping first-time messages, discovering the stream vibe",
+    emoji: "👋"
   }
 ];
 
-// Generate OpenAI-powered responses
+
+// 🎤 Generate OpenAI-powered chat responses
 async function generateOpenAIResponse(streamerName, personality, speechContent) {
   try {
     console.log(`🤖 Calling OpenAI API for ${personality.name}...`);
     console.log(`📝 Speech content: "${speechContent}"`);
-    
-    // If no speech content, generate a general response
-    let prompt;
-    if (!speechContent || speechContent.trim() === '') {
-      prompt = `You are ${personality.name}, a ${personality.personality} in a live stream chat. The streamer "${streamerName}" is streaming. 
 
-Respond as this character would in a live chat. Keep it short (1-2 sentences max), casual, and engaging. Use the emoji ${personality.emoji} if appropriate. Be authentic to the personality.
+    const prompt = `
+You are ${personality.name}, a ${personality.personality} chatting in a fast-paced live Twitch stream for ${streamerName}. 
+Write a short, natural, human-like message (6–16 words) reacting in the chat. 
 
-Examples of good responses:
-- GamingFan123: "yo what's up! 🔥"
-- StreamLover: "hey there! ❤️" 
-- TechGuru: "nice stream! ⚡"
-- NewViewer: "first time here! 👋"
-- HypeMaster: "LET'S GO! 🚀"
-- ChillViewer: "chilling here 😌"
+STYLE RULES:
+- Sound like a real Twitch chatter (casual, spontaneous, sometimes slightly chaotic)
+- Include slang, emotes (like LUL, Pog, KEKW, 😭🔥💀), or abbreviations if it fits
+- Avoid full sentences that sound like essays
+- Sometimes use lowercase or missing punctuation — not perfect grammar
+- Only respond once, keep it natural (don’t overexplain)
+- Don’t mention ${personality.name} or ${streamerName}
+- Optionally add the emoji ${personality.emoji} at the end if it feels natural
 
-Respond now:`;
-    } else {
-      prompt = `You are ${personality.name}, a ${personality.personality} in a live stream chat. The streamer just said: "${speechContent}". 
+Good examples:
+- "yo that was insane 😭🔥"
+- "bro really said that LMAOO 💀"
+- "mic setup goin crazy ngl ⚙️"
+- "ayy let's gooo Pog 🔥"
+- "vibes are immaculate rn 😌"
+- "first stream i’ve caught live, feelsgoodman 👋"
 
-Respond as this character would in a live chat. Keep it short (1-2 sentences max), casual, and engaging. Use the emoji ${personality.emoji} if appropriate. Be authentic to the personality.
-
-Examples of good responses:
-- GamingFan123: "yo that was sick! 🔥"
-- StreamLover: "aww you're so sweet ❤️" 
-- TechGuru: "nice setup btw ⚡"
-- NewViewer: "hey first time here! 👋"
-- HypeMaster: "LET'S GOOO! 🚀"
-- ChillViewer: "chilling and enjoying the vibes 😌"
-
-IMPORTANT: 
-- Only respond as your character
-- Do NOT include "Streamer:" or any character names in your response
-- Do NOT include your own name (${personality.name}) in the response
-- Just respond naturally as if you're chatting
-- Example: Instead of "StreamLover: Hello!" just say "Hello!"
-
-Respond now:`;
-    }
+Streamer just said: "${speechContent || "nothing specific, just chatting"}"
+Now respond as ${personality.name}.
+`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 50,
-      temperature: 0.8,
+      temperature: 1.1, // more variety and randomness
     });
 
     let response = completion.choices[0].message.content.trim();
-    
-    // Remove personality name from response if it's included
-    if (response.startsWith(`${personality.name}:`)) {
-      response = response.replace(`${personality.name}:`, '').trim();
-    }
-    if (response.startsWith(`${personality.name}`)) {
-      response = response.replace(`${personality.name}`, '').trim();
-    }
-    
-    // Remove "Streamer:" references
-    response = response.replace(/Streamer:\s*"[^"]*"/g, '').trim();
-    response = response.replace(/Streamer:\s*[^"]*/g, '').trim();
-    response = response.replace(/^Streamer:\s*/g, '').trim();
-    
-    // Remove any remaining personality name patterns
-    response = response.replace(new RegExp(`${personality.name}:\\s*`, 'g'), '').trim();
-    response = response.replace(new RegExp(`${personality.name}\\s*`, 'g'), '').trim();
-    
-    // Remove any character name followed by colon
-    response = response.replace(/^[A-Za-z]+:\s*/g, '').trim();
-    
-    // Remove any remaining quotes that might be left
-    response = response.replace(/^["']|["']$/g, '').trim();
-    
-    // Clean up any extra whitespace or newlines
-    response = response.replace(/\n+/g, ' ').trim();
-    
-    // Final cleanup - remove any remaining character name patterns
-    response = response.replace(/^(StreamLover|GamingFan123|TechGuru|NewViewer|HypeMaster|ChillViewer):\s*/g, '').trim();
-    
+
+    // Clean up response
+    response = response
+      .replace(/^[A-Za-z]+:\s*/g, '') // remove "Name: "
+      .replace(/^["']|["']$/g, '') // remove quotes
+      .replace(/\n+/g, ' ') // remove newlines
+      .trim()
+      .toLowerCase(); // convert to lowercase
+
     console.log(`🧠 OpenAI response: ${response}`);
     return response;
   } catch (error) {
@@ -154,11 +125,10 @@ Respond now:`;
   }
 }
 
-// Generate fake chat messages - ONLY using ChatGPT
+// 🎭 Generate a fake chat message
 async function generateFakeMessage(streamerName, personality, speechContent = null) {
-  // Always use OpenAI for responses
   const openAIResponse = await generateOpenAIResponse(streamerName, personality, speechContent);
-  
+
   if (openAIResponse) {
     return {
       id: Date.now() + Math.random(),
@@ -170,15 +140,12 @@ async function generateFakeMessage(streamerName, personality, speechContent = nu
       isContextual: !!speechContent
     };
   }
-  
-  // If OpenAI fails, return null (no fallback)
+
   console.log(`❌ Failed to generate OpenAI response for ${personality.name}`);
   return null;
 }
 
-// Removed hardcoded responses - now using only ChatGPT
-
-// Socket.io connection handling
+// 🧩 Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -188,7 +155,7 @@ io.on('connection', (socket) => {
     console.log(`User ${socket.id} joined stream ${streamId}`);
   });
 
-  // Start fake audience for a stream
+  // Start fake audience
   socket.on('start-fake-audience', (streamId) => {
     if (!activeStreams.has(streamId)) {
       activeStreams.set(streamId, {
@@ -198,27 +165,35 @@ io.on('connection', (socket) => {
       });
     }
 
-    // Start generating fake messages (only general responses, not speech-triggered)
     const interval = setInterval(async () => {
       if (activeStreams.has(streamId)) {
         const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
         const fakeMessage = await generateFakeMessage(activeStreams.get(streamId).streamerName, personality, null);
-        
-        // Only send message if OpenAI generated a response
+
         if (fakeMessage) {
           io.to(streamId).emit('fake-chat-message', fakeMessage);
-          
+
+          // 🔁 Occasionally send a quick follow-up message
+          if (Math.random() < 0.25) {
+            const secondPersonality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+            const secondMessage = await generateFakeMessage(activeStreams.get(streamId).streamerName, secondPersonality, null);
+
+            if (secondMessage) {
+              setTimeout(() => {
+                io.to(streamId).emit('fake-chat-message', secondMessage);
+              }, Math.random() * 2000 + 1000); // 1–3s delay
+            }
+          }
+
           // Update audience count
           const stream = activeStreams.get(streamId);
-          stream.audienceCount = Math.min(stream.audienceCount + 1, 50); // Cap at 50 fake viewers
+          stream.audienceCount = Math.min(stream.audienceCount + 1, 50);
           activeStreams.set(streamId, stream);
-          
           io.to(streamId).emit('audience-update', stream.audienceCount);
         }
       }
-    }, Math.random() * 5000 + 5000); // Random interval between 5-10 seconds (less frequent)
+    }, Math.random() * 4000 + 2000); // every 2–6 seconds
 
-    // Store interval for cleanup
     socket.fakeAudienceInterval = interval;
   });
 
@@ -228,37 +203,29 @@ io.on('connection', (socket) => {
       clearInterval(socket.fakeAudienceInterval);
       socket.fakeAudienceInterval = null;
     }
-    
-    // Clear the stream data
+
     if (activeStreams.has(streamId)) {
       activeStreams.delete(streamId);
     }
-    
-    // Notify that the stream has stopped
+
     io.to(streamId).emit('stream-stopped');
   });
 
-  // Handle speech detection
+  // Handle speech-triggered responses
   socket.on('speech-detected', async (data) => {
     const { streamId, speechContent, confidence } = data;
     console.log(`Speech detected in stream ${streamId}: "${speechContent}" (confidence: ${confidence})`);
-    
-    // Generate contextual fake audience responses based on speech
+
     if (activeStreams.has(streamId)) {
       const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
-      console.log(`Generating AI response for personality: ${personality.name}`);
-      
+      console.log(`Generating AI response for: ${personality.name}`);
+
       const fakeMessage = await generateFakeMessage(activeStreams.get(streamId).streamerName, personality, speechContent);
-      console.log(`Generated message:`, fakeMessage);
-      
-      // Only send message if OpenAI generated a response
-      if (fakeMessage) {
-        io.to(streamId).emit('fake-chat-message', fakeMessage);
-      }
+      if (fakeMessage) io.to(streamId).emit('fake-chat-message', fakeMessage);
     }
   });
 
-  // Handle real chat messages (from actual viewers)
+  // Handle real chat messages
   socket.on('chat-message', (data) => {
     const { streamId, username, message } = data;
     io.to(streamId).emit('real-chat-message', {
@@ -270,7 +237,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Handle streamer updates
+  // Update streamer name
   socket.on('update-streamer-name', (data) => {
     const { streamId, streamerName } = data;
     if (activeStreams.has(streamId)) {
@@ -280,16 +247,14 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Cleanup on disconnect
+  // Disconnect cleanup
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    if (socket.fakeAudienceInterval) {
-      clearInterval(socket.fakeAudienceInterval);
-    }
+    if (socket.fakeAudienceInterval) clearInterval(socket.fakeAudienceInterval);
   });
 });
 
-// API Routes
+// 🛠️ API Routes
 app.get('/api/streams', (req, res) => {
   res.json(Array.from(activeStreams.entries()).map(([id, stream]) => ({
     id,
@@ -300,12 +265,9 @@ app.get('/api/streams', (req, res) => {
 app.get('/api/stream/:id', (req, res) => {
   const streamId = req.params.id;
   const stream = activeStreams.get(streamId);
-  
-  if (stream) {
-    res.json({ id: streamId, ...stream });
-  } else {
-    res.status(404).json({ error: 'Stream not found' });
-  }
+
+  if (stream) res.json({ id: streamId, ...stream });
+  else res.status(404).json({ error: 'Stream not found' });
 });
 
 // Serve React app
@@ -313,6 +275,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/build/index.html'));
 });
 
+// 🚀 Start server
 const PORT = process.env.PORT || 9000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
