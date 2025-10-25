@@ -32,37 +32,37 @@ const fakeAudience = [];
 // 🧠 Realistic Twitch Chat Personalities
 const chatPersonalities = [
   {
-    name: "TheSuperHyped",
+    name: "Kai Cenat",
     personality: "high-energy streamer-fan who treats every moment like a highlight reel, types in caps, uses hype slang and emotes constantly",
     emoji: "🔥"
   },
   {
-    name: "SetupWizard",
+    name: "Marques Brownlee",
     personality: "the tech-savvy viewer who notices the streamer’s gear, bitrate, fps drops, and offers friendly commentary/compliments on stream quality",
     emoji: "⚙️"
   },
   {
-    name: "DrySarcasmJim",
+    name: "Jynxi",
     personality: "the sarcastic but affectionate regular, drops witty one-liners, irony, memes, a little poke at the streamer but always in good fun",
     emoji: "😏"
   },
   {
-    name: "HeartfulHal",
+    name: "ninja",
     personality: "the wholesome, supportive viewer — cheers everyone on, uses hearts and kind emojis, asks questions to show genuine interest rather than trolling",
     emoji: "💖"
   },
   {
-    name: "MemeChaosCarl",
+    name: "xQc",
     personality: "the chaotic meme-lord in chat: throws emotes, spam jokes, reacts wildly, maybe posts random “KEKW” or “PogChamp”-style lines — not mean, just wild",
     emoji: "💀"
   },
   {
-    name: "SilentWatcher",
+    name: "pokimane",
     personality: "the low-key lurker who rarely types, but when they do it’s a short cryptic, funny or random comment — kind of mysterious and calm",
     emoji: "👀"
   },
   {
-    name: "FirstTimeFiona",
+    name: "iLuvKpop",
     personality: "the new viewer who’s excited but a bit awkward, asking newbie questions, dropping first-time messages, discovering the stream vibe",
     emoji: "👋"
   }
@@ -187,9 +187,11 @@ io.on('connection', (socket) => {
 
           // Update audience count
           const stream = activeStreams.get(streamId);
-          stream.audienceCount = Math.min(stream.audienceCount + 1, 50);
-          activeStreams.set(streamId, stream);
-          io.to(streamId).emit('audience-update', stream.audienceCount);
+          if (stream) {
+            stream.audienceCount = Math.min(stream.audienceCount + 1, 50);
+            activeStreams.set(streamId, stream);
+            io.to(streamId).emit('audience-update', stream.audienceCount);
+          }
         }
       }
     }, Math.random() * 4000 + 2000); // every 2–6 seconds
