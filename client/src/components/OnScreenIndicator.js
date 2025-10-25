@@ -4,6 +4,7 @@ import './OnScreenIndicator.css';
 const OnScreenIndicator = ({ socket, streamId }) => {
   const [currentFaces, setCurrentFaces] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
+  const [previousFaces, setPreviousFaces] = useState(new Set());
 
   useEffect(() => {
     if (!socket) {
@@ -28,27 +29,62 @@ const OnScreenIndicator = ({ socket, streamId }) => {
       setIsVisible(true);
     };
 
+
+    const handleCurrentFaces = (data) => {
+      console.log('👥 OnScreenIndicator received current-faces event:', data);
+      
+      const newFaces = data.faces || [];
+      const newFaceNames = new Set(newFaces.map(f => f.name));
+      
+      // Update current faces
+      setCurrentFaces(newFaces);
+      
+      // Check for faces that left
+      const facesThatLeft = Array.from(previousFaces).filter(name => !newFaceNames.has(name));
+      if (facesThatLeft.length > 0) {
+        console.log('👋 Faces that left:', facesThatLeft);
+      }
+      
+      // Check for new faces
+      const newFaceNamesArray = Array.from(newFaceNames).filter(name => !previousFaces.has(name));
+      if (newFaceNamesArray.length > 0) {
+        console.log('🆕 New faces detected:', newFaceNamesArray);
+      }
+      
+      // Update previous faces for next comparison
+      setPreviousFaces(newFaceNames);
+      
+      // Update visibility
+      if (newFaces.length > 0) {
+        setIsVisible(true);
+        console.log('👥 OnScreenIndicator updated with current faces:', newFaces.map(f => f.name));
+      } else {
+        setIsVisible(false);
+        console.log('👥 OnScreenIndicator cleared - no faces detected');
+      }
+    };
+
     const handleFaceLeft = (data) => {
       console.log('👋 Face left in OnScreenIndicator:', data);
-      setCurrentFaces(prev => prev.filter(face => face.name !== data.person));
+      setCurrentFaces(prev => {
+        const updatedFaces = prev.filter(face => face.name !== data.person);
+        console.log(`👋 Removed ${data.person} from indicator. Remaining:`, updatedFaces.map(f => f.name));
+        return updatedFaces;
+      });
+      
+      // Update previous faces tracking
+      setPreviousFaces(prev => {
+        const updated = new Set(prev);
+        updated.delete(data.person);
+        return updated;
+      });
     };
 
     const handleFacesLeft = () => {
       console.log('👋 All faces left in OnScreenIndicator');
       setCurrentFaces([]);
-    };
-
-    const handleCurrentFaces = (data) => {
-      console.log('👥 OnScreenIndicator received current-faces event:', data);
-      if (data.faces && data.faces.length > 0) {
-        setCurrentFaces(data.faces);
-        setIsVisible(true);
-        console.log('👥 OnScreenIndicator updated with current faces:', data.faces.map(f => f.name));
-      } else {
-        setCurrentFaces([]);
-        setIsVisible(false);
-        console.log('👥 OnScreenIndicator cleared - no faces detected');
-      }
+      setIsVisible(false);
+      setPreviousFaces(new Set());
     };
 
     socket.on('face-detected', handleFaceDetected);
@@ -83,18 +119,12 @@ const OnScreenIndicator = ({ socket, streamId }) => {
     <div className="on-screen-indicator">
       {currentFaces.length > 0 && (
         <div className="faces-bar">
-          <span className="faces-label">👥</span>
           {currentFaces.map((face, index) => (
             <div 
               key={`${face.name}-${index}`} 
               className="face-chip"
               data-person={face.name}
             >
-              <span className="face-avatar">
-                {face.name === 'Mehdi' ? '🧙‍♂️' : 
-                 face.name === 'Abhi' ? '👨‍💻' : 
-                 face.name === 'Badri' ? '🎮' : '👤'}
-              </span>
               <span className="face-name">{face.name}</span>
             </div>
           ))}

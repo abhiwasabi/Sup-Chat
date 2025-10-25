@@ -26,6 +26,9 @@ app.use(express.static(path.join(__dirname, '../client/build')));
 const activeStreams = new Map();
 const fakeAudience = [];
 
+// Track current faces in each stream to prevent duplicate messages
+const currentFaces = new Map();
+
 // AI Chat personalities - Vlog Style
 const chatPersonalities = [
   {
@@ -403,6 +406,17 @@ io.on('connection', (socket) => {
     const { streamId, person, confidence, expressions } = data;
     console.log(`👤 PERSON DETECTED: ${person} in stream ${streamId} (confidence: ${confidence})`);
     
+    // Initialize current faces for this stream if not exists
+    if (!currentFaces.has(streamId)) {
+      currentFaces.set(streamId, new Set());
+    }
+    
+    const streamFaces = currentFaces.get(streamId);
+    const isNewFace = !streamFaces.has(person);
+    
+    // Add face to current faces
+    streamFaces.add(person);
+    
     // Broadcast face detection to all clients in the stream
     io.to(streamId).emit('face-detected', {
       person,
@@ -411,66 +425,78 @@ io.on('connection', (socket) => {
       timestamp: new Date().toISOString()
     });
     
-    // Person-specific responses
-    const personResponses = {
-      'Mehdi': [
-        "Mehdi is here! The tech wizard has arrived! 🧙‍♂️",
-        "Hey Mehdi! Ready to code some magic? ✨",
-        "Mehdi just joined - time for some serious programming! 💻"
-      ],
-      'Abhi': [
-        "Abhi is in the house! The blue jacket legend! 🔥",
-        "Welcome Abhi! Let's make this stream epic! 🚀",
-        "Abhi just joined - the energy level just went up! ⚡"
-      ],
-      'Badri': [
-        "Badri is here! The gaming streamer with the beard! 🎮",
-        "Hey Badri! Ready to dominate some games? 🏆",
-        "Badri just joined - this stream is about to be legendary! 🌟"
-      ],
-      'Unknown Person': [
-        "Someone new just joined! Welcome to the stream! 👋",
-        "A new face in the stream! Say hello! 😊",
-        "Welcome to the stream! Great to have you here! 🎉"
-      ]
-    };
-    
-    // Get random response for the person
-    const responses = personResponses[person] || personResponses['Unknown Person'];
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    
-    // Generate contextual chat message for face detection
-    const faceDetectionMessage = {
-      id: Date.now() + Math.random(),
-      username: "System",
-      message: randomResponse,
-      emoji: "👤",
-      timestamp: new Date().toISOString(),
-      isFaceDetection: true
-    };
-    
-    io.to(streamId).emit('fake-chat-message', faceDetectionMessage);
-    
-    // Generate personality responses to the new person
-    setTimeout(async () => {
-      try {
-        const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
-        const welcomeMessage = await generateFakeMessage(
-          activeStreams.get(streamId)?.streamerName || 'Streamer',
-          personality,
-          `${person} just joined the stream!`
-        );
-        
-        io.to(streamId).emit('fake-chat-message', welcomeMessage);
-      } catch (error) {
-        console.error("Error generating face detection response:", error);
-      }
-    }, 1000);
+    // Only generate chat messages for NEW faces (not existing ones)
+    if (isNewFace) {
+      console.log(`🆕 NEW FACE DETECTED: ${person} in stream ${streamId}`);
+      
+      // Person-specific responses
+      const personResponses = {
+        'Mehdi': [
+          "Mehdi is here! The tech wizard has arrived! 🧙‍♂️",
+          "Hey Mehdi! Ready to code some magic? ✨",
+          "Mehdi just joined - time for some serious programming! 💻"
+        ],
+        'Abhi': [
+          "Abhi is in the house! The blue jacket legend! 🔥",
+          "Welcome Abhi! Let's make this stream epic! 🚀",
+          "Abhi just joined - the energy level just went up! ⚡"
+        ],
+        'Badri': [
+          "Badri is here! The gaming streamer with the beard! 🎮",
+          "Hey Badri! Ready to dominate some games? 🏆",
+          "Badri just joined - this stream is about to be legendary! 🌟"
+        ],
+        'Unknown Person': [
+          "Someone new just joined! Welcome to the stream! 👋",
+          "A new face in the stream! Say hello! 😊",
+          "Welcome to the stream! Great to have you here! 🎉"
+        ]
+      };
+      
+      // Get random response for the person
+      const responses = personResponses[person] || personResponses['Unknown Person'];
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      
+      // Generate contextual chat message for face detection
+      const faceDetectionMessage = {
+        id: Date.now() + Math.random(),
+        username: "System",
+        message: randomResponse,
+        emoji: "👤",
+        timestamp: new Date().toISOString(),
+        isFaceDetection: true
+      };
+      
+      io.to(streamId).emit('fake-chat-message', faceDetectionMessage);
+      
+      // Generate personality responses to the new person
+      setTimeout(async () => {
+        try {
+          const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+          const welcomeMessage = await generateFakeMessage(
+            activeStreams.get(streamId)?.streamerName || 'Streamer',
+            personality,
+            `${person} just joined the stream!`
+          );
+          
+          io.to(streamId).emit('fake-chat-message', welcomeMessage);
+        } catch (error) {
+          console.error("Error generating face detection response:", error);
+        }
+      }, 1000);
+    } else {
+      console.log(`👤 EXISTING FACE: ${person} still in stream ${streamId} (no new message)`);
+    }
   });
 
   socket.on('face-left', (data) => {
     const { streamId, person } = data;
     console.log(`👋 Face left: ${person} from stream ${streamId}`);
+    
+    // Remove face from current faces tracking
+    if (currentFaces.has(streamId)) {
+      currentFaces.get(streamId).delete(person);
+    }
     
     // Broadcast face left event to all clients in the stream
     io.to(streamId).emit('face-left', {
@@ -495,6 +521,11 @@ io.on('connection', (socket) => {
     const { streamId } = data;
     console.log(`👋 All faces left stream ${streamId}`);
     
+    // Clear all faces from current faces tracking
+    if (currentFaces.has(streamId)) {
+      currentFaces.get(streamId).clear();
+    }
+    
     // Broadcast all faces left event to all clients in the stream
     io.to(streamId).emit('faces-left', {
       timestamp: new Date().toISOString()
@@ -511,6 +542,99 @@ io.on('connection', (socket) => {
     };
     
     io.to(streamId).emit('fake-chat-message', allFacesLeftMessage);
+  });
+
+  // Handle current faces update from client
+  socket.on('current-faces', (data) => {
+    const { streamId, faces } = data;
+    const faceNames = faces ? faces.map(f => f.name) : [];
+    console.log(`👥 Current faces update for stream ${streamId}:`, faceNames);
+    
+    // Initialize current faces for this stream if not exists
+    if (!currentFaces.has(streamId)) {
+      currentFaces.set(streamId, new Set());
+    }
+    
+    const streamFaces = currentFaces.get(streamId);
+    const currentFaceNames = new Set(faceNames);
+    
+    // Find faces that left (were in tracking but not in current faces)
+    const facesThatLeft = Array.from(streamFaces).filter(face => !currentFaceNames.has(face));
+    
+    console.log(`🔍 Faces that left: ${facesThatLeft.length > 0 ? facesThatLeft.join(', ') : 'none'}`);
+    
+    // Remove faces that left from tracking
+    facesThatLeft.forEach(face => {
+      streamFaces.delete(face);
+      console.log(`👋 Face left: ${face} from stream ${streamId}`);
+      
+      // Generate chat message for face leaving
+      const faceLeftMessage = {
+        id: Date.now() + Math.random(),
+        username: "System",
+        message: `${face} left the stream 👋`,
+        emoji: "👋",
+        timestamp: new Date().toISOString(),
+        isFaceDetection: true
+      };
+      
+      io.to(streamId).emit('fake-chat-message', faceLeftMessage);
+    });
+    
+    // Find new faces (in current faces but not in tracking)
+    const newFaces = faces ? faces.filter(face => !streamFaces.has(face.name)) : [];
+    
+    console.log(`🔍 New faces: ${newFaces.length > 0 ? newFaces.map(f => f.name).join(', ') : 'none'}`);
+    
+    // Add new faces to tracking and generate messages
+    newFaces.forEach(face => {
+      streamFaces.add(face.name);
+      console.log(`🆕 New face detected: ${face.name} in stream ${streamId}`);
+      
+      // Person-specific responses for new faces
+      const personResponses = {
+        'Mehdi': [
+          "Mehdi is here! The tech wizard has arrived! 🧙‍♂️",
+          "Hey Mehdi! Ready to code some magic? ✨",
+          "Mehdi just joined - time for some serious programming! 💻"
+        ],
+        'Abhi': [
+          "Abhi is in the house! The blue jacket legend! 🔥",
+          "Welcome Abhi! Let's make this stream epic! 🚀",
+          "Abhi just joined - the energy level just went up! ⚡"
+        ],
+        'Badri': [
+          "Badri is here! The gaming streamer with the beard! 🎮",
+          "Hey Badri! Ready to dominate some games? 🏆",
+          "Badri just joined - this stream is about to be legendary! 🌟"
+        ],
+        'Unknown Person': [
+          "Someone new just joined! Welcome to the stream! 👋",
+          "A new face in the stream! Say hello! 😊",
+          "Welcome to the stream! Great to have you here! 🎉"
+        ]
+      };
+      
+      const responses = personResponses[face.name] || personResponses['Unknown Person'];
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      
+      const faceDetectionMessage = {
+        id: Date.now() + Math.random(),
+        username: "System",
+        message: randomResponse,
+        emoji: "👤",
+        timestamp: new Date().toISOString(),
+        isFaceDetection: true
+      };
+      
+      io.to(streamId).emit('fake-chat-message', faceDetectionMessage);
+    });
+    
+    // Broadcast updated current faces back to client
+    io.to(streamId).emit('current-faces', {
+      streamId,
+      faces: faces || []
+    });
   });
 
   // Cleanup on disconnect
