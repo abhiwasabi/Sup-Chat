@@ -5,6 +5,7 @@ import './FaceRecognition.css';
 const FaceRecognition = ({ socket, streamId, isStreaming }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const detectionIntervalRef = useRef(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [currentFaces, setCurrentFaces] = useState([]);
   const [knownFaces, setKnownFaces] = useState([]);
@@ -195,18 +196,12 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
     const detectFaces = async () => {
       if (!videoRef.current || !canvasRef.current) {
         console.log('⚠️ Video or canvas not ready');
-        if (isDetecting) {
-          requestAnimationFrame(detectFaces);
-        }
         return;
       }
 
       // Throttle detection to every 500ms to prevent excessive processing
       const now = Date.now();
       if (now - lastDetectionTime < 500) {
-        if (isDetecting) {
-          requestAnimationFrame(detectFaces);
-        }
         return;
       }
       setLastDetectionTime(now);
@@ -266,12 +261,13 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
       } catch (error) {
         console.error('❌ Error in face recognition:', error);
       }
-
-      if (isDetecting) {
-        requestAnimationFrame(detectFaces);
-      }
     };
 
+    // Start periodic detection every 3 seconds
+    console.log('🔄 Starting periodic face detection every 3 seconds...');
+    detectionIntervalRef.current = setInterval(detectFaces, 3000);
+    
+    // Run initial detection immediately
     detectFaces();
   };
 
@@ -367,7 +363,16 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
   };
 
   const stopDetection = () => {
+    console.log('⏹️ Stopping face detection...');
     setIsDetecting(false);
+    
+    // Clear the periodic detection interval
+    if (detectionIntervalRef.current) {
+      console.log('🔄 Clearing detection interval...');
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
+    }
+    
     if (videoRef.current) {
       const stream = videoRef.current.srcObject;
       if (stream) {
