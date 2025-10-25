@@ -46,6 +46,7 @@ const OnScreenIndicator = ({ socket, streamId }) => {
         console.log('👥 OnScreenIndicator updated with current faces:', data.faces.map(f => f.name));
       } else {
         setCurrentFaces([]);
+        setIsVisible(false);
         console.log('👥 OnScreenIndicator cleared - no faces detected');
       }
     };
@@ -80,37 +81,25 @@ const OnScreenIndicator = ({ socket, streamId }) => {
 
   return (
     <div className="on-screen-indicator">
-      <div className="indicator-header">
-        <span className="indicator-icon">👥</span>
-        <span className="indicator-title">On Screen</span>
-      </div>
-      <div className="faces-list">
-        {currentFaces.length === 0 ? (
-          <div style={{ color: '#adadb8', fontSize: '12px', padding: '8px' }}>
-            No faces detected
-          </div>
-        ) : (
-          currentFaces.map((face, index) => (
+      {currentFaces.length > 0 && (
+        <div className="faces-bar">
+          <span className="faces-label">👥</span>
+          {currentFaces.map((face, index) => (
             <div 
               key={`${face.name}-${index}`} 
-              className="face-item"
+              className="face-chip"
               data-person={face.name}
             >
-              <div className="face-avatar">
+              <span className="face-avatar">
                 {face.name === 'Mehdi' ? '🧙‍♂️' : 
                  face.name === 'Abhi' ? '👨‍💻' : 
                  face.name === 'Badri' ? '🎮' : '👤'}
-              </div>
-              <div className="face-info">
-                <div className="face-name">{face.name}</div>
-                <div className="face-confidence">
-                  {(face.confidence * 100).toFixed(0)}%
-                </div>
-              </div>
+              </span>
+              <span className="face-name">{face.name}</span>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

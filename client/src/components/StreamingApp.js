@@ -4,7 +4,6 @@ import VideoStream from './VideoStream';
 import ChatInterface from './ChatInterface';
 import SpeechRecognition from './SpeechRecognition';
 import FaceRecognition from './FaceRecognition';
-import OnScreenIndicator from './OnScreenIndicator';
 import { io } from 'socket.io-client';
 
 const StreamingApp = () => {
@@ -65,6 +64,7 @@ const StreamingApp = () => {
               setStreamerName={setStreamerName}
               onStartStream={startStreaming}
               onStopStream={stopStreaming}
+              streamId={streamId}
             />
           </div>
           
@@ -77,11 +77,6 @@ const StreamingApp = () => {
           </div>
         </div>
         
-        {/* On Screen Indicator - Shows who's currently detected */}
-        <OnScreenIndicator 
-          socket={socket}
-          streamId={streamId}
-        />
         
         {/* Hidden components - functionality only */}
         <div style={{ display: 'none' }}>

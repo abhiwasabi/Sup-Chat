@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
+import OnScreenIndicator from './OnScreenIndicator';
 import './VideoStream.css';
 
-const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onStartStream, onStopStream }) => {
+const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onStartStream, onStopStream, streamId }) => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [isVideoActive, setIsVideoActive] = useState(false);
@@ -132,16 +133,25 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
         {/* Status overlay in top left */}
         <div className="status-overlay">
           <div className="status-row">
-            {streamerName && isStreaming && (
-              <div className="streamer-name-display">
-                {streamerName}
+            <div className="status-left">
+              {streamerName && isStreaming && (
+                <div className="streamer-name-display">
+                  {streamerName}
+                </div>
+              )}
+              <div className={`status-indicator ${isStreaming ? 'live' : 'offline'}`}>
+                {isStreaming ? 'LIVE' : 'OFFLINE'}
               </div>
-            )}
-            <div className={`status-indicator ${isStreaming ? 'live' : 'offline'}`}>
-              {isStreaming ? 'LIVE' : 'OFFLINE'}
+              <div className="viewer-count">
+                👥 {viewerCount}
+              </div>
             </div>
-            <div className="viewer-count">
-              👥 {viewerCount}
+            <div className="status-right">
+              {/* On Screen Indicator - inline with status */}
+              <OnScreenIndicator 
+                socket={socket}
+                streamId={streamId}
+              />
             </div>
           </div>
         </div>

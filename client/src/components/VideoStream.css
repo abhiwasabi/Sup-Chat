@@ -18,9 +18,11 @@
   position: absolute;
   top: 1rem;
   left: 1rem;
+  right: 1rem;
   z-index: 10;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
 }
 
@@ -35,6 +37,20 @@
 }
 
 .status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.status-right {
   display: flex;
   align-items: center;
   gap: 0.75rem;
