@@ -38,14 +38,28 @@ const OnScreenIndicator = ({ socket, streamId }) => {
       setCurrentFaces([]);
     };
 
+    const handleCurrentFaces = (data) => {
+      console.log('👥 OnScreenIndicator received current-faces event:', data);
+      if (data.faces && data.faces.length > 0) {
+        setCurrentFaces(data.faces);
+        setIsVisible(true);
+        console.log('👥 OnScreenIndicator updated with current faces:', data.faces.map(f => f.name));
+      } else {
+        setCurrentFaces([]);
+        console.log('👥 OnScreenIndicator cleared - no faces detected');
+      }
+    };
+
     socket.on('face-detected', handleFaceDetected);
     socket.on('face-left', handleFaceLeft);
     socket.on('faces-left', handleFacesLeft);
+    socket.on('current-faces', handleCurrentFaces);
 
     return () => {
       socket.off('face-detected', handleFaceDetected);
       socket.off('face-left', handleFaceLeft);
       socket.off('faces-left', handleFacesLeft);
+      socket.off('current-faces', handleCurrentFaces);
     };
   }, [socket]);
 
@@ -59,41 +73,21 @@ const OnScreenIndicator = ({ socket, streamId }) => {
     }
   }, [currentFaces]);
 
-  // Test function to manually show indicator
-  const testIndicator = () => {
-    console.log('🧪 Testing OnScreenIndicator...');
-    setCurrentFaces([
-      { name: 'Mehdi', confidence: 0.95, timestamp: Date.now() },
-      { name: 'Abhi', confidence: 0.87, timestamp: Date.now() }
-    ]);
-    setIsVisible(true);
-  };
+  // Only show indicator when there are faces or when visible
+  if (!isVisible && currentFaces.length === 0) {
+    return null;
+  }
 
-  // Always show a test button for debugging
   return (
     <div className="on-screen-indicator">
       <div className="indicator-header">
         <span className="indicator-icon">👥</span>
         <span className="indicator-title">On Screen</span>
-        <button 
-          onClick={testIndicator}
-          style={{ 
-            background: '#9146ff', 
-            color: 'white', 
-            border: 'none', 
-            padding: '4px 8px', 
-            borderRadius: '4px',
-            fontSize: '12px',
-            marginLeft: 'auto'
-          }}
-        >
-          Test
-        </button>
       </div>
       <div className="faces-list">
         {currentFaces.length === 0 ? (
           <div style={{ color: '#adadb8', fontSize: '12px', padding: '8px' }}>
-            No faces detected. Click Test to see indicator.
+            No faces detected
           </div>
         ) : (
           currentFaces.map((face, index) => (

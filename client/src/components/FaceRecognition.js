@@ -278,6 +278,12 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
   const processFaceRecognition = async (detections) => {
     if (detections.length === 0) {
       setCurrentFaces([]);
+      // Emit empty state to clear OnScreenIndicator
+      console.log('📡 Emitting empty faces state to OnScreenIndicator');
+      socket.emit('current-faces', {
+        streamId,
+        faces: []
+      });
       return;
     }
 
@@ -331,6 +337,17 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
     }
     
     setCurrentFaces(recognizedFaces);
+    
+    // Emit current faces state to OnScreenIndicator
+    console.log('📡 Emitting current faces to OnScreenIndicator:', recognizedFaces);
+    socket.emit('current-faces', {
+      streamId,
+      faces: recognizedFaces.map(face => ({
+        name: face.name,
+        confidence: face.confidence,
+        timestamp: Date.now()
+      }))
+    });
     
     // Show notification for the first recognized face (or unknown if none recognized)
     const firstFace = recognizedFaces[0];
