@@ -30,57 +30,46 @@ const fakeAudience = [];
 const chatPersonalities = [
   {
     name: "valkyrae",
-    personality: "curious viewer who asks follow-up questions about your life and experiences",
     emoji: "🤔"
   },
   {
     name: "pokimane",
-    personality: "encouraging viewer who gives positive feedback and emotional support",
     emoji: "💪"
   },
   {
     name: "Tfue",
-    personality: "interested viewer who wants to hear more details and stories",
     emoji: "📖"
   },
   {
     name: "TSM_Myth",
-    personality: "helpful viewer who offers suggestions and shares similar experiences",
     emoji: "💡"
   },
   {
     name: "xQc",
-    personality: "expressive viewer who reacts emotionally to what you share",
     emoji: "😊"
   },
   {
     name: "TenZ",
-    personality: "inquisitive viewer who asks thoughtful questions about your content",
     emoji: "❓"
   },
   {
     name: "neon",
-    personality: "negative viewer who criticizes everything and complains constantly",
     emoji: "💀"
   },
   {
     name: "Lacy",
-    personality: "bitter viewer who always finds something to hate and spreads negativity",
     emoji: "😡"
   },
   {
     name: "LinusTechTips",
-    personality: "extremely nerdy viewer who uses technical jargon and over-analyzes everything",
     emoji: "🤓"
   },
   {
     name: "marlon",
-    personality: "super relaxed viewer who speaks in slang and uses lots of 'bro' and 'dude'",
     emoji: "🌊"
   },
   {
     name: "Kai Cenat",
-    personality: "trendy viewer who uses modern slang and talks about what's 'fire' and 'lit'",
     emoji: "🔥"
   }
 ];
@@ -97,11 +86,11 @@ ${personality.name === 'Tfue' ? 'You are Tfue - known for being direct, competit
 ${personality.name === 'TSM_Myth' ? 'You are Myth - known for being analytical, strategic, and using technical gaming terms. You think logically and ask smart questions.' : ''}
 ${personality.name === 'xQc' ? 'You are xQc - known for being energetic, dramatic, and using expressions like "POGGERS" and "OMEGALUL". You react strongly to everything.' : ''}
 ${personality.name === 'TenZ' ? 'You are TenZ - known for being chill, humble, and using gaming terminology. You speak casually and are very supportive.' : ''}
-${personality.name === 'ToxicTyler' ? 'You are ToxicTyler - known for being negative, critical, and complaining about everything. You find fault in everything and spread negativity.' : ''}
-${personality.name === 'SaltySam' ? 'You are SaltySam - known for being bitter, hateful, and always finding something to hate. You are very negative and toxic.' : ''}
-${personality.name === 'TechNerd' ? 'You are TechNerd - known for being extremely nerdy, using technical jargon, and over-analyzing everything. You speak like a computer scientist.' : ''}
-${personality.name === 'ChillVibes' ? 'You are ChillVibes - known for being super relaxed, using lots of "bro" and "dude", and speaking in chill slang. You are very laid back.' : ''}
-${personality.name === 'HypeBeast' ? 'You are HypeBeast - known for being trendy, using modern slang like "fire" and "lit", and talking about what\'s cool and trendy.' : ''}
+${personality.name === 'neon' ? 'You are neon - known for being toxic, negative, and complaining about everything. You find fault in everything and spread negativity.' : ''}
+${personality.name === 'Lacy' ? 'You are Lacy - known for being bitter, hateful, and always finding something to hate. You are very negative and toxic.' : ''}
+${personality.name === 'LinusTechTips' ? 'You are LinusTechTips - known for being extremely nerdy, using technical jargon, and over-analyzing everything. You speak like a computer scientist.' : ''}
+${personality.name === 'marlon' ? 'You are marlon - known for being super relaxed, using lots of "bro" and "dude", and speaking in chill slang. You are very laid back.' : ''}
+${personality.name === 'Kai Cenat' ? 'You are Kai Cenat - known for being toxic, dramatic, and using expressions like "nah" and "bro". You are known for being controversial and sometimes negative.' : ''}
 
 The streamer just said: "${speechContent || 'Hello everyone, welcome to my stream!'}"
 
