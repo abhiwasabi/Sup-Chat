@@ -15,30 +15,11 @@ body {
 }
 
 .App {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #0e0e10;
-}
-
-.app-header {
-  background: #18181b;
-  border-bottom: 1px solid #2d2d30;
-  padding: 1rem 0;
-  text-align: center;
-}
-
-.app-header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  color: #9146ff;
-}
-
-.app-header p {
-  font-size: 0.875rem;
-  color: #adadb8;
-  font-weight: 400;
+  overflow: hidden;
 }
 
 .app-main {
@@ -46,18 +27,23 @@ body {
   padding: 0;
   max-width: 100%;
   margin: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .stream-container {
   display: grid;
   grid-template-columns: 1fr 400px;
   gap: 0;
-  min-height: calc(100vh - 80px);
+  height: 100vh;
+  overflow: hidden;
 }
 
 .video-section {
   background: #0e0e10;
   position: relative;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .chat-section {
@@ -65,6 +51,8 @@ body {
   border-left: 1px solid #2d2d30;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .controls-section {
@@ -75,22 +63,31 @@ body {
 @media (max-width: 1200px) {
   .stream-container {
     grid-template-columns: 1fr;
+    grid-template-rows: 1fr 300px;
+  }
+  
+  .video-section {
+    height: calc(100vh - 300px);
   }
   
   .chat-section {
     border-left: none;
     border-top: 1px solid #2d2d30;
-    max-height: 400px;
+    height: 300px;
   }
 }
 
 @media (max-width: 768px) {
-  .app-header h1 {
-    font-size: 1.25rem;
+  .stream-container {
+    grid-template-rows: 1fr 250px;
   }
   
-  .app-header p {
-    font-size: 0.75rem;
+  .video-section {
+    height: calc(100vh - 250px);
+  }
+  
+  .chat-section {
+    height: 250px;
   }
 }
 

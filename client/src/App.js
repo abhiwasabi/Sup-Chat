@@ -54,11 +54,6 @@ function App() {
 
   return (
     <div className="App">
-      <header className="app-header">
-        <h1>Sup Chat</h1>
-        <p>ever wanted to stream with actual views? take your shot.</p>
-      </header>
-      
       <main className="app-main">
         <div className="stream-container">
           <div className="video-section">
