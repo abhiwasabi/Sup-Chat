@@ -240,33 +240,120 @@ io.on('connection', (socket) => {
     
     if (activeStreams.has(streamId)) {
       try {
-        // Generate 3 different responses in parallel for maximum speed
+        // Check if any personality names are mentioned in the speech
+        const mentionedPersonalities = [];
+        const speechLower = speechContent.toLowerCase();
+        
+        console.log(`🔍 Checking speech: "${speechContent}"`);
+        
+        chatPersonalities.forEach(personality => {
+          const nameLower = personality.name.toLowerCase();
+          let isMentioned = false;
+          
+          // Check for exact match first
+          if (speechLower.includes(nameLower)) {
+            isMentioned = true;
+            console.log(`✅ Exact match found for ${personality.name}`);
+          }
+          // Check for common variations and nicknames
+          else if (nameLower === 'xqc' && (speechLower.includes('xqc') || speechLower.includes('x qc'))) {
+            isMentioned = true;
+            console.log(`✅ xQc variation match found`);
+          }
+          else if (nameLower === 'tsm_myth' && (speechLower.includes('myth') || speechLower.includes('tsm'))) {
+            isMentioned = true;
+            console.log(`✅ TSM_Myth variation match found`);
+          }
+          else if (nameLower === 'tenz' && (speechLower.includes('tenz') || speechLower.includes('tens') || speechLower.includes('ten z'))) {
+            isMentioned = true;
+            console.log(`✅ TenZ variation match found`);
+          }
+          else if (nameLower === 'valkyrae' && (speechLower.includes('valkyrae') || speechLower.includes('valky rae'))) {
+            isMentioned = true;
+            console.log(`✅ Valkyrae variation match found`);
+          }
+          else if (nameLower === 'pokimane' && (speechLower.includes('pokimane') || speechLower.includes('poki mane') || speechLower.includes('pokemon'))) {
+            isMentioned = true;
+            console.log(`✅ Pokimane variation match found`);
+          }
+          else if (nameLower === 'tfue' && (speechLower.includes('tfue') || speechLower.includes('t fue'))) {
+            isMentioned = true;
+            console.log(`✅ Tfue variation match found`);
+          }
+          else if (nameLower === 'linustechtips' && (speechLower.includes('linus') || speechLower.includes('tech') || speechLower.includes('linus tech'))) {
+            isMentioned = true;
+            console.log(`✅ LinusTechTips variation match found`);
+          }
+          else if (nameLower === 'kai cenat' && (speechLower.includes('kai') || speechLower.includes('cenat') || speechLower.includes('kai cenat'))) {
+            isMentioned = true;
+            console.log(`✅ Kai Cenat variation match found`);
+          }
+          else if (nameLower === 'marlon' && (speechLower.includes('marlon') || speechLower.includes('marlin'))) {
+            isMentioned = true;
+            console.log(`✅ Marlon variation match found`);
+          }
+          else if (nameLower === 'lacy' && (speechLower.includes('lacy') || speechLower.includes('lucy'))) {
+            isMentioned = true;
+            console.log(`✅ Lacy variation match found`);
+          }
+          
+          if (isMentioned) {
+            mentionedPersonalities.push(personality);
+            console.log(`🎯 Mentioned personality detected: ${personality.name}`);
+          }
+        });
+        
+        // Generate responses: mentioned personalities ONLY or random ones
         const usedPersonalities = new Set();
         const personalityPromises = [];
         
-        for (let i = 0; i < 3; i++) {
-          let personality;
-          // Ensure we get 3 different personalities
-          do {
-            personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
-          } while (usedPersonalities.has(personality.name) && usedPersonalities.size < chatPersonalities.length);
+        console.log(`🔍 Found ${mentionedPersonalities.length} mentioned personalities:`, mentionedPersonalities.map(p => p.name));
+        
+        if (mentionedPersonalities.length > 0) {
+          // EXCLUSIVE MODE: Only mentioned personalities respond
+          console.log(`🎯 EXCLUSIVE MODE: Only mentioned personalities will respond`);
+          console.log(`🎯 EXCLUSIVE: ${mentionedPersonalities.length} mentioned personality(ies) will respond exclusively`);
           
-          usedPersonalities.add(personality.name);
+          mentionedPersonalities.forEach(personality => {
+            usedPersonalities.add(personality.name);
+            console.log(`✅ Adding EXCLUSIVE response from ${personality.name}`);
+            personalityPromises.push(
+              generateFakeMessage(
+                activeStreams.get(streamId).streamerName,
+                personality,
+                speechContent
+              )
+            );
+          });
           
-          // Create promise for parallel execution
-          personalityPromises.push(
-            generateFakeMessage(
-              activeStreams.get(streamId).streamerName,
-              personality,
-              speechContent
-            )
-          );
+          // CRITICAL: Skip all random personalities when someone is mentioned
+          console.log(`🚫 EXCLUSIVE MODE: Skipping random personalities - only mentioned ones will respond`);
+        } else {
+          // NORMAL MODE: 3 random personalities respond
+          console.log(`🎲 NORMAL MODE: 3 random personalities will respond`);
+          for (let i = 0; i < 3; i++) {
+            let personality;
+            // Ensure we get 3 different personalities
+            do {
+              personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+            } while (usedPersonalities.has(personality.name) && usedPersonalities.size < chatPersonalities.length);
+            
+            usedPersonalities.add(personality.name);
+            
+            personalityPromises.push(
+              generateFakeMessage(
+                activeStreams.get(streamId).streamerName,
+                personality,
+                speechContent
+              )
+            );
+          }
         }
         
         // Execute all API calls in parallel
         const responses = await Promise.all(personalityPromises);
         
-        // Send all 3 responses with minimal delays for fast response
+        // Send all responses with minimal delays for fast response
         responses.forEach((message, index) => {
           setTimeout(() => {
             io.to(streamId).emit('fake-chat-message', message);
