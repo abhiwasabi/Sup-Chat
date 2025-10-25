@@ -26,37 +26,37 @@ app.use(express.static(path.join(__dirname, '../client/build')));
 const activeStreams = new Map();
 const fakeAudience = [];
 
-// AI Chat personalities
+// AI Chat personalities - Vlog Style
 const chatPersonalities = [
   {
-    name: "GamingFan123",
-    personality: "enthusiastic gamer who loves reactions and hype",
-    emoji: "🎮"
+    name: "CuriousCat",
+    personality: "curious viewer who asks follow-up questions about your life and experiences",
+    emoji: "🤔"
   },
   {
-    name: "StreamLover",
-    personality: "supportive viewer who asks questions and gives compliments",
-    emoji: "❤️"
+    name: "SupportiveSam",
+    personality: "encouraging viewer who gives positive feedback and emotional support",
+    emoji: "💪"
   },
   {
-    name: "TechGuru",
-    personality: "technical viewer who comments on stream quality and setup",
-    emoji: "⚡"
+    name: "StorySeeker",
+    personality: "interested viewer who wants to hear more details and stories",
+    emoji: "📖"
   },
   {
-    name: "NewViewer",
-    personality: "curious new viewer who asks about the streamer and content",
-    emoji: "👋"
+    name: "AdviceGiver",
+    personality: "helpful viewer who offers suggestions and shares similar experiences",
+    emoji: "💡"
   },
   {
-    name: "HypeMaster",
-    personality: "energetic viewer who creates excitement and momentum",
-    emoji: "🔥"
+    name: "ReactionRiley",
+    personality: "expressive viewer who reacts emotionally to what you share",
+    emoji: "😊"
   },
   {
-    name: "ChillViewer",
-    personality: "relaxed viewer who enjoys casual conversation",
-    emoji: "😌"
+    name: "QuestionQueen",
+    personality: "inquisitive viewer who asks thoughtful questions about your content",
+    emoji: "❓"
   }
 ];
 
@@ -64,16 +64,16 @@ const chatPersonalities = [
 async function generateFakeMessage(streamerName, personality, speechContent = null) {
   // Build a natural, contextual prompt
   const prompt = `
-You are acting as a Twitch chat viewer named ${personality.name}.
+You are acting as a vlog viewer named ${personality.name}.
 Personality: ${personality.personality}.
-Tone: sound like a real Twitch chatter — casual, chaotic, Gen Z slang, short messages, rarely use emojis (only 1-2 per message max).
-Never be formal or robotic. You can use words like "bro", "nah", "W", "L", "fr", "ong", etc.
+Tone: sound like a real vlog commenter — casual, supportive, interested in personal content, short messages, rarely use emojis (only 1-2 per message max).
+Respond to what the vlogger is actually saying, not about gaming or streaming.
 
-The streamer's name is ${streamerName}.
+The vlogger's name is ${streamerName}.
 ${speechContent ? `They just said: "${speechContent}"` : "No recent speech content."}
 
-Write ONE chat message you'd realistically post right now.
-It should be 3–12 words long, fun, and natural.
+Write ONE comment you'd realistically post right now.
+It should be 3–12 words long, relevant to what they said, and natural.
 IMPORTANT: Write your response in ALL LOWERCASE letters only.
 `;
 
