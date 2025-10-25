@@ -15,12 +15,12 @@ body {
 }
 
 .App {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: #0e0e10;
-  overflow: hidden;
 }
+
 
 .app-main {
   flex: 1;
@@ -58,6 +58,7 @@ body {
 .controls-section {
   display: none; /* Hidden as requested */
 }
+
 
 /* Responsive Design */
 @media (max-width: 1200px) {

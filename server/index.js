@@ -398,6 +398,74 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle face recognition events
+  socket.on('face-detected', (data) => {
+    const { streamId, person, confidence, expressions } = data;
+    console.log(`👤 Face detected: ${person} in stream ${streamId} (confidence: ${confidence})`);
+    
+    // Generate contextual chat message for face detection
+    const faceDetectionMessage = {
+      id: Date.now() + Math.random(),
+      username: "System",
+      message: `Yo, ${person} just joined the stream! 🎉`,
+      emoji: "🎉",
+      timestamp: new Date().toISOString(),
+      isFaceDetection: true
+    };
+    
+    io.to(streamId).emit('fake-chat-message', faceDetectionMessage);
+    
+    // Generate personality responses to the new person
+    setTimeout(async () => {
+      try {
+        const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+        const welcomeMessage = await generateFakeMessage(
+          activeStreams.get(streamId)?.streamerName || 'Streamer',
+          personality,
+          `${person} just joined the stream!`
+        );
+        
+        io.to(streamId).emit('fake-chat-message', welcomeMessage);
+      } catch (error) {
+        console.error("Error generating face detection response:", error);
+      }
+    }, 1000);
+  });
+
+  socket.on('face-left', (data) => {
+    const { streamId, person } = data;
+    console.log(`👋 Face left: ${person} from stream ${streamId}`);
+    
+    // Generate contextual chat message for face leaving
+    const faceLeftMessage = {
+      id: Date.now() + Math.random(),
+      username: "System",
+      message: `${person} left the stream 👋`,
+      emoji: "👋",
+      timestamp: new Date().toISOString(),
+      isFaceDetection: true
+    };
+    
+    io.to(streamId).emit('fake-chat-message', faceLeftMessage);
+  });
+
+  socket.on('faces-left', (data) => {
+    const { streamId } = data;
+    console.log(`👋 All faces left stream ${streamId}`);
+    
+    // Generate contextual chat message when all faces leave
+    const allFacesLeftMessage = {
+      id: Date.now() + Math.random(),
+      username: "System",
+      message: "Everyone left the stream 😢",
+      emoji: "😢",
+      timestamp: new Date().toISOString(),
+      isFaceDetection: true
+    };
+    
+    io.to(streamId).emit('fake-chat-message', allFacesLeftMessage);
+  });
+
   // Cleanup on disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);

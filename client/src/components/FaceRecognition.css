@@ -1,0 +1,299 @@
+.face-recognition-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.camera-section {
+  flex: 1;
+}
+
+.video-container {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.face-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.btn-primary:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #f44336;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #da190b;
+}
+
+.btn-secondary:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.face-info {
+  flex: 1;
+  background: #2a2a2a;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.face-info h3 {
+  color: #fff;
+  margin-bottom: 15px;
+  font-size: 18px;
+}
+
+.face-info h4 {
+  color: #ccc;
+  margin: 20px 0 10px 0;
+  font-size: 14px;
+}
+
+.faces-list {
+  margin-bottom: 20px;
+}
+
+.face-item {
+  padding: 8px 12px;
+  background: #3a3a3a;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.face-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.face-name {
+  color: #4CAF50;
+  font-weight: 600;
+}
+
+.recognition-confidence {
+  color: #FF9800;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.face-confidence {
+  color: #ccc;
+  font-size: 10px;
+  text-align: right;
+}
+
+.no-faces {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+.known-profiles {
+  border-top: 1px solid #444;
+  padding-top: 15px;
+}
+
+.profile-item {
+  color: #ccc;
+  font-size: 12px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #3a3a3a;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+.profile-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.profile-item strong {
+  color: #4CAF50;
+}
+
+.training-status {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.training-status.trained {
+  background: #4CAF50;
+  color: white;
+}
+
+.training-status.not-trained {
+  background: #f44336;
+  color: white;
+}
+
+.training-progress {
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: #555;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 10px;
+  color: #ccc;
+  min-width: 30px;
+  text-align: right;
+}
+
+.btn-train {
+  background: #2196F3;
+  color: white;
+  font-size: 10px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-train:hover:not(:disabled) {
+  background: #1976D2;
+}
+
+.btn-train:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.training-link {
+  border-top: 1px solid #444;
+  padding-top: 15px;
+  text-align: center;
+}
+
+.training-link a {
+  color: #4CAF50;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.training-link a:hover {
+  color: #8BC34A;
+  text-decoration: underline;
+}
+
+/* Training Page Styles */
+.face-training-page {
+  min-height: 100vh;
+  background: #0e0e10;
+  color: #ffffff;
+  padding: 20px;
+}
+
+.training-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.training-header h1 {
+  color: #4CAF50;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.training-header p {
+  color: #ccc;
+  font-size: 1.1rem;
+}
+
+.training-instructions {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 30px;
+  border: 1px solid #2d2d30;
+}
+
+.training-instructions h3 {
+  color: #4CAF50;
+  margin-bottom: 15px;
+}
+
+.training-instructions ol {
+  color: #ccc;
+  line-height: 1.6;
+}
+
+.training-instructions li {
+  margin-bottom: 8px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .face-recognition-container {
+    flex-direction: column;
+  }
+  
+  .face-canvas {
+    width: 100%;
+    height: auto;
+  }
+  
+  .training-header h1 {
+    font-size: 2rem;
+  }
+}
