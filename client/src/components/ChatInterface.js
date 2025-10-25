@@ -4,6 +4,7 @@ import './ChatInterface.css';
 const ChatInterface = ({ socket, streamId, isStreaming }) => {
   const [messages, setMessages] = useState([]);
   const [audienceCount, setAudienceCount] = useState(0);
+  const [wasStreaming, setWasStreaming] = useState(false);
   const messagesEndRef = useRef(null);
 
   const clearChat = () => {
@@ -18,13 +19,17 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Clear chat when streaming stops
+  // Track streaming state changes
   useEffect(() => {
-    if (!isStreaming) {
+    if (isStreaming) {
+      setWasStreaming(true);
+    } else if (wasStreaming && !isStreaming) {
+      // Only clear when streaming actually stops (not on initial load)
       setMessages([]);
       setAudienceCount(0);
+      setWasStreaming(false);
     }
-  }, [isStreaming]);
+  }, [isStreaming, wasStreaming]);
 
   useEffect(() => {
     if (!socket) return;
