@@ -10,6 +10,11 @@ const SpeechRecognition = ({ onSpeechDetected, isStreaming, isEnabled }) => {
   const [supported, setSupported] = useState(false);
 
   useEffect(() => {
+    // Only initialize speech recognition if streaming and enabled
+    if (!isStreaming || !isEnabled) {
+      return;
+    }
+    
     // Check if speech recognition is supported
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -101,7 +106,7 @@ const SpeechRecognition = ({ onSpeechDetected, isStreaming, isEnabled }) => {
         recognitionRef.current.stop();
       }
     };
-  }, [onSpeechDetected]);
+  }, [onSpeechDetected, isStreaming, isEnabled]);
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && supported && isStreaming && isEnabled) {
@@ -128,6 +133,15 @@ const SpeechRecognition = ({ onSpeechDetected, isStreaming, isEnabled }) => {
       stopListening();
     }
   }, [isStreaming, isEnabled, supported, startListening]);
+
+  // Cleanup when component unmounts or streaming stops
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   if (!supported) {
     return (

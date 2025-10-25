@@ -110,26 +110,24 @@ const OnScreenIndicator = ({ socket, streamId }) => {
     }
   }, [currentFaces]);
 
-  // Only show indicator when there are faces or when visible
-  if (!isVisible && currentFaces.length === 0) {
+  // Only show indicator when there are faces
+  if (currentFaces.length === 0) {
     return null;
   }
 
   return (
     <div className="on-screen-indicator">
-      {currentFaces.length > 0 && (
-        <div className="faces-bar">
-          {currentFaces.map((face, index) => (
-            <div 
-              key={`${face.name}-${index}`} 
-              className="face-chip"
-              data-person={face.name}
-            >
-              <span className="face-name">{face.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="faces-bar">
+        {currentFaces.map((face, index) => (
+          <div 
+            key={`${face.name}-${index}`} 
+            className="face-chip"
+            data-person={face.name}
+          >
+            <span className="face-name">{face.name}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

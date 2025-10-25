@@ -29,6 +29,9 @@ const fakeAudience = [];
 // Track current faces in each stream to prevent duplicate messages
 const currentFaces = new Map();
 
+// Track when specific personalities are mentioned to pause random messages
+const mentionedPersonalityTimeouts = new Map();
+
 // AI Chat personalities - Vlog Style
 const chatPersonalities = [
   {
@@ -176,11 +179,38 @@ io.on('connection', (socket) => {
       });
       // Send initial audience count
       io.to(streamId).emit('audience-update', initialCount);
+      
+      // Announce all fake audience personalities joining the stream
+      console.log(`🎉 Announcing fake audience joining stream ${streamId}`);
+      chatPersonalities.forEach((personality, index) => {
+        setTimeout(() => {
+          const joinMessage = {
+            id: Date.now() + Math.random() + index,
+            username: "System",
+            message: `${personality.name} joined the stream`,
+            emoji: personality.emoji,
+            timestamp: new Date().toISOString(),
+            isSystemJoin: true
+          };
+          io.to(streamId).emit('fake-chat-message', joinMessage);
+        }, index * 200); // Stagger messages by 200ms each
+      });
     }
 
     // Start generating fake messages
     const interval = setInterval(async () => {
       if (activeStreams.has(streamId)) {
+        // Check if a personality was recently mentioned (within last 10 seconds)
+        const now = Date.now();
+        const lastMentionTime = mentionedPersonalityTimeouts.get(streamId) || 0;
+        const timeSinceMention = now - lastMentionTime;
+        
+        // If a personality was mentioned recently, skip this random message
+        if (timeSinceMention < 10000) { // 10 seconds
+          console.log(`⏸️ Skipping random message - personality was mentioned ${Math.round(timeSinceMention/1000)}s ago`);
+          return;
+        }
+        
         const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
         // Generate random idle messages with different topics
         const idleTopics = [
@@ -317,6 +347,10 @@ io.on('connection', (socket) => {
           console.log(`🎯 EXCLUSIVE MODE: Only mentioned personalities will respond`);
           console.log(`🎯 EXCLUSIVE: ${mentionedPersonalities.length} mentioned personality(ies) will respond exclusively`);
           
+          // Record the time when a personality was mentioned to pause random messages
+          mentionedPersonalityTimeouts.set(streamId, Date.now());
+          console.log(`⏸️ Pausing random messages for 10 seconds due to personality mention`);
+          
           mentionedPersonalities.forEach(personality => {
             usedPersonalities.add(personality.name);
             console.log(`✅ Adding EXCLUSIVE response from ${personality.name}`);
@@ -425,49 +459,9 @@ io.on('connection', (socket) => {
       timestamp: new Date().toISOString()
     });
     
-    // Only generate chat messages for NEW faces (not existing ones)
+    // Only generate personality responses for NEW faces (not existing ones)
     if (isNewFace) {
       console.log(`🆕 NEW FACE DETECTED: ${person} in stream ${streamId}`);
-      
-      // Person-specific responses
-      const personResponses = {
-        'Mehdi': [
-          "Mehdi is here! The tech wizard has arrived! 🧙‍♂️",
-          "Hey Mehdi! Ready to code some magic? ✨",
-          "Mehdi just joined - time for some serious programming! 💻"
-        ],
-        'Abhi': [
-          "Abhi is in the house! The blue jacket legend! 🔥",
-          "Welcome Abhi! Let's make this stream epic! 🚀",
-          "Abhi just joined - the energy level just went up! ⚡"
-        ],
-        'Badri': [
-          "Badri is here! The gaming streamer with the beard! 🎮",
-          "Hey Badri! Ready to dominate some games? 🏆",
-          "Badri just joined - this stream is about to be legendary! 🌟"
-        ],
-        'Unknown Person': [
-          "Someone new just joined! Welcome to the stream! 👋",
-          "A new face in the stream! Say hello! 😊",
-          "Welcome to the stream! Great to have you here! 🎉"
-        ]
-      };
-      
-      // Get random response for the person
-      const responses = personResponses[person] || personResponses['Unknown Person'];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      // Generate contextual chat message for face detection
-      const faceDetectionMessage = {
-        id: Date.now() + Math.random(),
-        username: "System",
-        message: randomResponse,
-        emoji: "👤",
-        timestamp: new Date().toISOString(),
-        isFaceDetection: true
-      };
-      
-      io.to(streamId).emit('fake-chat-message', faceDetectionMessage);
       
       // Generate personality responses to the new person
       setTimeout(async () => {
@@ -503,18 +497,6 @@ io.on('connection', (socket) => {
       person,
       timestamp: new Date().toISOString()
     });
-    
-    // Generate contextual chat message for face leaving
-    const faceLeftMessage = {
-      id: Date.now() + Math.random(),
-      username: "System",
-      message: `${person} left the stream 👋`,
-      emoji: "👋",
-      timestamp: new Date().toISOString(),
-      isFaceDetection: true
-    };
-    
-    io.to(streamId).emit('fake-chat-message', faceLeftMessage);
   });
 
   socket.on('faces-left', (data) => {
@@ -530,18 +512,6 @@ io.on('connection', (socket) => {
     io.to(streamId).emit('faces-left', {
       timestamp: new Date().toISOString()
     });
-    
-    // Generate contextual chat message when all faces leave
-    const allFacesLeftMessage = {
-      id: Date.now() + Math.random(),
-      username: "System",
-      message: "Everyone left the stream 😢",
-      emoji: "😢",
-      timestamp: new Date().toISOString(),
-      isFaceDetection: true
-    };
-    
-    io.to(streamId).emit('fake-chat-message', allFacesLeftMessage);
   });
 
   // Handle current faces update from client
@@ -567,18 +537,6 @@ io.on('connection', (socket) => {
     facesThatLeft.forEach(face => {
       streamFaces.delete(face);
       console.log(`👋 Face left: ${face} from stream ${streamId}`);
-      
-      // Generate chat message for face leaving
-      const faceLeftMessage = {
-        id: Date.now() + Math.random(),
-        username: "System",
-        message: `${face} left the stream 👋`,
-        emoji: "👋",
-        timestamp: new Date().toISOString(),
-        isFaceDetection: true
-      };
-      
-      io.to(streamId).emit('fake-chat-message', faceLeftMessage);
     });
     
     // Find new faces (in current faces but not in tracking)
@@ -586,48 +544,10 @@ io.on('connection', (socket) => {
     
     console.log(`🔍 New faces: ${newFaces.length > 0 ? newFaces.map(f => f.name).join(', ') : 'none'}`);
     
-    // Add new faces to tracking and generate messages
+    // Add new faces to tracking
     newFaces.forEach(face => {
       streamFaces.add(face.name);
       console.log(`🆕 New face detected: ${face.name} in stream ${streamId}`);
-      
-      // Person-specific responses for new faces
-      const personResponses = {
-        'Mehdi': [
-          "Mehdi is here! The tech wizard has arrived! 🧙‍♂️",
-          "Hey Mehdi! Ready to code some magic? ✨",
-          "Mehdi just joined - time for some serious programming! 💻"
-        ],
-        'Abhi': [
-          "Abhi is in the house! The blue jacket legend! 🔥",
-          "Welcome Abhi! Let's make this stream epic! 🚀",
-          "Abhi just joined - the energy level just went up! ⚡"
-        ],
-        'Badri': [
-          "Badri is here! The gaming streamer with the beard! 🎮",
-          "Hey Badri! Ready to dominate some games? 🏆",
-          "Badri just joined - this stream is about to be legendary! 🌟"
-        ],
-        'Unknown Person': [
-          "Someone new just joined! Welcome to the stream! 👋",
-          "A new face in the stream! Say hello! 😊",
-          "Welcome to the stream! Great to have you here! 🎉"
-        ]
-      };
-      
-      const responses = personResponses[face.name] || personResponses['Unknown Person'];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      const faceDetectionMessage = {
-        id: Date.now() + Math.random(),
-        username: "System",
-        message: randomResponse,
-        emoji: "👤",
-        timestamp: new Date().toISOString(),
-        isFaceDetection: true
-      };
-      
-      io.to(streamId).emit('fake-chat-message', faceDetectionMessage);
     });
     
     // Broadcast updated current faces back to client

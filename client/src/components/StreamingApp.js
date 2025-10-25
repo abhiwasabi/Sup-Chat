@@ -43,7 +43,7 @@ const StreamingApp = () => {
   };
 
   const handleSpeechDetected = (speechData) => {
-    if (socket && streamId && speechEnabled) {
+    if (socket && streamId && speechEnabled && isStreaming) {
       socket.emit('speech-detected', {
         streamId,
         speechContent: speechData.text,
