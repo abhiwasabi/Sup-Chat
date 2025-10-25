@@ -90,13 +90,18 @@ IMPORTANT: Write your response in ALL LOWERCASE letters only.
     // Ensure all lowercase
     message = message.toLowerCase();
     
-    // Limit emojis to max 2 per message
-    const emojiMatches = message.match(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu);
-    if (emojiMatches && emojiMatches.length > 2) {
-      // Keep only first 2 emojis
-      const emojisToKeep = emojiMatches.slice(0, 2);
-      message = message.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
-      message = message + emojisToKeep.join('');
+    // Smart emoji logic: only add emojis to enthusiastic responses
+    const enthusiasticWords = ['amazing', 'awesome', 'love', 'great', 'fantastic', 'incredible', 'wow', 'yes', 'excited', 'happy', 'best', 'perfect', 'wonderful', 'brilliant', 'epic', 'fire', 'lit', 'hype', 'pumped', 'stoked'];
+    const isEnthusiastic = enthusiasticWords.some(word => message.includes(word));
+    
+    // Remove all existing emojis first
+    message = message.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+    
+    // Only add emoji if response is enthusiastic
+    if (isEnthusiastic) {
+      const emojiOptions = ['😭', '💀', '😹', '♥️', '🖤', '👌'];
+      const randomEmoji = emojiOptions[Math.floor(Math.random() * emojiOptions.length)];
+      message = message + ' ' + randomEmoji;
     }
 
     return {
