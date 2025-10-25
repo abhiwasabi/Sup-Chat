@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import './VideoStream.css';
 
-const VideoStream = ({ isStreaming, streamerName, setStreamerName, onStartStream, onStopStream }) => {
+const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onStartStream, onStopStream }) => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [isVideoActive, setIsVideoActive] = useState(false);
@@ -82,6 +82,24 @@ const VideoStream = ({ isStreaming, streamerName, setStreamerName, onStartStream
       stopVideo();
     };
   }, []);
+
+  // Listen for audience count updates
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('audience-update', (count) => {
+      setViewerCount(count);
+    });
+
+    socket.on('stream-stopped', () => {
+      setViewerCount(0);
+    });
+
+    return () => {
+      socket.off('audience-update');
+      socket.off('stream-stopped');
+    };
+  }, [socket]);
 
   return (
     <div className="video-stream">

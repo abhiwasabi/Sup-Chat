@@ -29,52 +29,86 @@ const fakeAudience = [];
 // AI Chat personalities - Vlog Style
 const chatPersonalities = [
   {
-    name: "CuriousCat",
+    name: "valkyrae",
     personality: "curious viewer who asks follow-up questions about your life and experiences",
     emoji: "🤔"
   },
   {
-    name: "SupportiveSam",
+    name: "pokimane",
     personality: "encouraging viewer who gives positive feedback and emotional support",
     emoji: "💪"
   },
   {
-    name: "StorySeeker",
+    name: "Tfue",
     personality: "interested viewer who wants to hear more details and stories",
     emoji: "📖"
   },
   {
-    name: "AdviceGiver",
+    name: "TSM_Myth",
     personality: "helpful viewer who offers suggestions and shares similar experiences",
     emoji: "💡"
   },
   {
-    name: "ReactionRiley",
+    name: "xQc",
     personality: "expressive viewer who reacts emotionally to what you share",
     emoji: "😊"
   },
   {
-    name: "QuestionQueen",
+    name: "TenZ",
     personality: "inquisitive viewer who asks thoughtful questions about your content",
     emoji: "❓"
+  },
+  {
+    name: "neon",
+    personality: "negative viewer who criticizes everything and complains constantly",
+    emoji: "💀"
+  },
+  {
+    name: "Lacy",
+    personality: "bitter viewer who always finds something to hate and spreads negativity",
+    emoji: "😡"
+  },
+  {
+    name: "LinusTechTips",
+    personality: "extremely nerdy viewer who uses technical jargon and over-analyzes everything",
+    emoji: "🤓"
+  },
+  {
+    name: "marlon",
+    personality: "super relaxed viewer who speaks in slang and uses lots of 'bro' and 'dude'",
+    emoji: "🌊"
+  },
+  {
+    name: "Kai Cenat",
+    personality: "trendy viewer who uses modern slang and talks about what's 'fire' and 'lit'",
+    emoji: "🔥"
   }
 ];
 
 // Generate fake chat messages based on speech content
 async function generateFakeMessage(streamerName, personality, speechContent = null) {
-  // Build a natural, contextual prompt
+  // Build a natural, contextual prompt with unique personality traits
   const prompt = `
-You are acting as a vlog viewer named ${personality.name}.
-Personality: ${personality.personality}.
-Tone: sound like a real vlog commenter — casual, supportive, interested in personal content, short messages, rarely use emojis (only 1-2 per message max).
-Respond to what the vlogger is actually saying, not about gaming or streaming.
+You are ${personality.name}, a real streamer/YouTuber with a unique personality and speaking style.
 
-The vlogger's name is ${streamerName}.
-${speechContent ? `They just said: "${speechContent}"` : "No recent speech content."}
+${personality.name === 'valkyrae' ? 'You are Valkyrae - known for being genuine, supportive, and asking thoughtful questions. You speak casually but thoughtfully.' : ''}
+${personality.name === 'pokimane' ? 'You are Pokimane - known for being bubbly, encouraging, and using expressions like "periodt" and "slay". You are very supportive and positive.' : ''}
+${personality.name === 'Tfue' ? 'You are Tfue - known for being direct, competitive, and using gaming slang. You speak confidently and sometimes use abbreviations.' : ''}
+${personality.name === 'TSM_Myth' ? 'You are Myth - known for being analytical, strategic, and using technical gaming terms. You think logically and ask smart questions.' : ''}
+${personality.name === 'xQc' ? 'You are xQc - known for being energetic, dramatic, and using expressions like "POGGERS" and "OMEGALUL". You react strongly to everything.' : ''}
+${personality.name === 'TenZ' ? 'You are TenZ - known for being chill, humble, and using gaming terminology. You speak casually and are very supportive.' : ''}
+${personality.name === 'ToxicTyler' ? 'You are ToxicTyler - known for being negative, critical, and complaining about everything. You find fault in everything and spread negativity.' : ''}
+${personality.name === 'SaltySam' ? 'You are SaltySam - known for being bitter, hateful, and always finding something to hate. You are very negative and toxic.' : ''}
+${personality.name === 'TechNerd' ? 'You are TechNerd - known for being extremely nerdy, using technical jargon, and over-analyzing everything. You speak like a computer scientist.' : ''}
+${personality.name === 'ChillVibes' ? 'You are ChillVibes - known for being super relaxed, using lots of "bro" and "dude", and speaking in chill slang. You are very laid back.' : ''}
+${personality.name === 'HypeBeast' ? 'You are HypeBeast - known for being trendy, using modern slang like "fire" and "lit", and talking about what\'s cool and trendy.' : ''}
 
-Write ONE comment you'd realistically post right now.
-It should be 3–12 words long, relevant to what they said, and natural.
-IMPORTANT: Write your response in ALL LOWERCASE letters only.
+The streamer just said: "${speechContent || 'Hello everyone, welcome to my stream!'}"
+
+Respond as ${personality.name} would - with your unique personality, speaking style, and typical expressions.
+Make it sound authentic to your real personality, not generic.
+Keep it 3-12 words, relevant to what they said, and in lowercase.
+CRITICAL: Do NOT use quotes, apostrophes, or any quotation marks in your response.
 `;
 
   try {
@@ -86,6 +120,9 @@ IMPORTANT: Write your response in ALL LOWERCASE letters only.
     });
 
     let message = completion.choices[0].message.content.trim();
+    
+    // Remove any quotes, apostrophes, or quotation marks
+    message = message.replace(/[""'']/g, '');
     
     // Ensure all lowercase
     message = message.toLowerCase();
@@ -138,32 +175,51 @@ io.on('connection', (socket) => {
   // Start fake audience for a stream
   socket.on('start-fake-audience', (streamId) => {
     if (!activeStreams.has(streamId)) {
+      // Generate initial random viewer count between 10 and 100
+      const initialCount = Math.floor(Math.random() * 91) + 10; // 10-100
       activeStreams.set(streamId, {
         streamerName: 'Streamer',
         isActive: true,
-        audienceCount: 0
+        audienceCount: initialCount
       });
+      // Send initial audience count
+      io.to(streamId).emit('audience-update', initialCount);
     }
 
     // Start generating fake messages
     const interval = setInterval(async () => {
       if (activeStreams.has(streamId)) {
         const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+        // Generate random idle messages with different topics
+        const idleTopics = [
+          "just chilling and watching",
+          "this stream is so good",
+          "love the vibes here",
+          "streamer is so talented",
+          "having a great time",
+          "this content is fire",
+          "streamer is amazing",
+          "love this community"
+        ];
+        const randomTopic = idleTopics[Math.floor(Math.random() * idleTopics.length)];
+        
         const fakeMessage = await generateFakeMessage(
           activeStreams.get(streamId).streamerName,
-          personality
+          personality,
+          randomTopic
         );
 
         io.to(streamId).emit('fake-chat-message', fakeMessage);
 
         const stream = activeStreams.get(streamId);
         if (stream) {
-          stream.audienceCount = Math.min(stream.audienceCount + 1, 50);
+          // Generate random viewer count between 10 and 100
+          stream.audienceCount = Math.floor(Math.random() * 91) + 10; // 10-100
           activeStreams.set(streamId, stream);
           io.to(streamId).emit('audience-update', stream.audienceCount);
         }
       }
-    }, Math.random() * 3000 + 2000);
+    }, Math.random() * 8000 + 5000); // Faster random messages (5-13 seconds)
 
     // Store interval for cleanup
     socket.fakeAudienceInterval = interval;
@@ -181,6 +237,9 @@ io.on('connection', (socket) => {
       activeStreams.delete(streamId);
     }
     
+    // Send final audience count of 0
+    io.to(streamId).emit('audience-update', 0);
+    
     // Notify that the stream has stopped
     io.to(streamId).emit('stream-stopped');
   });
@@ -191,14 +250,52 @@ io.on('connection', (socket) => {
     console.log(`Speech detected in stream ${streamId}: "${speechContent}" (confidence: ${confidence})`);
     
     if (activeStreams.has(streamId)) {
-      const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
-      const fakeMessage = await generateFakeMessage(
-        activeStreams.get(streamId).streamerName,
-        personality,
-        speechContent
-      );
-      
-      io.to(streamId).emit('fake-chat-message', fakeMessage);
+      try {
+        // Generate 3 different responses in parallel for maximum speed
+        const usedPersonalities = new Set();
+        const personalityPromises = [];
+        
+        for (let i = 0; i < 3; i++) {
+          let personality;
+          // Ensure we get 3 different personalities
+          do {
+            personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+          } while (usedPersonalities.has(personality.name) && usedPersonalities.size < chatPersonalities.length);
+          
+          usedPersonalities.add(personality.name);
+          
+          // Create promise for parallel execution
+          personalityPromises.push(
+            generateFakeMessage(
+              activeStreams.get(streamId).streamerName,
+              personality,
+              speechContent
+            )
+          );
+        }
+        
+        // Execute all API calls in parallel
+        const responses = await Promise.all(personalityPromises);
+        
+        // Send all 3 responses with minimal delays for fast response
+        responses.forEach((message, index) => {
+          setTimeout(() => {
+            io.to(streamId).emit('fake-chat-message', message);
+          }, index * 200); // 200ms delay between each response for fast, natural flow
+        });
+      } catch (error) {
+        console.error("Error generating speech responses:", error);
+        // Send fallback message if API fails
+        const fallbackMessage = {
+          id: Date.now() + Math.random(),
+          username: "Viewer",
+          message: "that's so cool! 😭",
+          emoji: "😭",
+          timestamp: new Date().toISOString(),
+          isContextual: true
+        };
+        io.to(streamId).emit('fake-chat-message', fallbackMessage);
+      }
     }
   });
 

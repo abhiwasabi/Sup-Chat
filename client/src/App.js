@@ -58,6 +58,7 @@ function App() {
         <div className="stream-container">
           <div className="video-section">
             <VideoStream 
+              socket={socket}
               isStreaming={isStreaming}
               streamerName={streamerName}
               setStreamerName={setStreamerName}
