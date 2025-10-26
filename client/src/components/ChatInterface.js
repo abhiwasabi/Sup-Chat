@@ -5,6 +5,7 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
   const [messages, setMessages] = useState([]);
   const [audienceCount, setAudienceCount] = useState(0);
   const [wasStreaming, setWasStreaming] = useState(false);
+  const [streamEnded, setStreamEnded] = useState(false);
   const messagesEndRef = useRef(null);
   const chatMessagesRef = useRef(null);
 
@@ -26,6 +27,7 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
   useEffect(() => {
     if (isStreaming) {
       setWasStreaming(true);
+      setStreamEnded(false); // Reset stream ended state when streaming starts
     } else if (wasStreaming && !isStreaming) {
       // Only clear when streaming actually stops (not on initial load)
       setMessages([]);
@@ -39,24 +41,30 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
 
     // Listen for fake chat messages
     socket.on('fake-chat-message', (message) => {
-      setMessages(prev => [...prev, { ...message, isFake: true }]);
+      if (!streamEnded) {
+        setMessages(prev => [...prev, { ...message, isFake: true }]);
+      }
     });
 
     // Listen for real chat messages
     socket.on('real-chat-message', (message) => {
-      setMessages(prev => [...prev, { ...message, isReal: true }]);
+      if (!streamEnded) {
+        setMessages(prev => [...prev, { ...message, isReal: true }]);
+      }
     });
 
     // Listen for donation messages
     socket.on('donation-message', (message) => {
-      console.log('💰 Donation message received:', message);
-      setMessages(prev => [...prev, { ...message, isDonation: true }]);
-      
-      // Play donation sound
-      playDonationSound();
-      
-      // Play TTS for donation message
-      speakDonation(message.message);
+      if (!streamEnded) {
+        console.log('💰 Donation message received:', message);
+        setMessages(prev => [...prev, { ...message, isDonation: true }]);
+        
+        // Play donation sound
+        playDonationSound();
+        
+        // Play TTS for donation message
+        speakDonation(message.message);
+      }
     });
 
     // Listen for audience count updates
@@ -66,8 +74,24 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
 
     // Listen for stream stopped event
     socket.on('stream-stopped', () => {
-      setMessages([]);
+      // Mark stream as ended to prevent new messages
+      setStreamEnded(true);
+      
+      // Add "Stream has ended" message
+      const streamEndedMessage = {
+        id: Date.now(),
+        username: 'System',
+        message: 'Stream has ended. Thank you for watching!',
+        timestamp: new Date().toISOString(),
+        isSystem: true
+      };
+      setMessages([streamEndedMessage]);
       setAudienceCount(0);
+      
+      // Auto-scroll to show the message
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     });
 
     return () => {
@@ -77,7 +101,7 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
       socket.off('audience-update');
       socket.off('stream-stopped');
     };
-  }, [socket]);
+  }, [socket, streamEnded]);
 
   // Play donation sound
   const playDonationSound = () => {
@@ -157,6 +181,7 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
               key={msg.id} 
               className={`chat-message ${
                 msg.isDonation ? 'donation-message' : 
+                msg.isSystem || msg.username === 'System' ? 'system-message' :
                 msg.isFake ? 'fake-message' : 
                 msg.isReal ? 'real-message' : ''
               }`}

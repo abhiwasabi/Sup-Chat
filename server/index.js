@@ -259,6 +259,12 @@ io.on('connection', (socket) => {
       activeStreams.delete(streamId);
     }
     
+    // Clear any personality mention timeouts for this stream
+    mentionedPersonalityTimeouts.delete(streamId);
+    
+    // Clear current faces tracking for this stream
+    currentFaces.delete(streamId);
+    
     // Send final audience count of 0
     io.to(streamId).emit('audience-update', 0);
     
@@ -270,6 +276,12 @@ io.on('connection', (socket) => {
   socket.on('speech-detected', async (data) => {
     const { streamId, speechContent, confidence } = data;
     console.log(`Speech detected in stream ${streamId}: "${speechContent}" (confidence: ${confidence})`);
+    
+    // Check if stream is still active before processing
+    if (!activeStreams.has(streamId)) {
+      console.log(`Stream ${streamId} is not active, ignoring speech detection`);
+      return;
+    }
     
     if (activeStreams.has(streamId)) {
       try {
@@ -479,6 +491,12 @@ io.on('connection', (socket) => {
     const { streamId, person, confidence, expressions } = data;
     console.log(`👤 PERSON DETECTED: ${person} in stream ${streamId} (confidence: ${confidence})`);
     
+    // Check if stream is still active before processing
+    if (!activeStreams.has(streamId)) {
+      console.log(`Stream ${streamId} is not active, ignoring face detection`);
+      return;
+    }
+    
     // Initialize current faces for this stream if not exists
     if (!currentFaces.has(streamId)) {
       currentFaces.set(streamId, new Set());
@@ -601,6 +619,12 @@ io.on('connection', (socket) => {
     const { streamId, emotion, intensity, expressions, personName, timestamp } = data;
     console.log(`😊 Emotion detected in stream ${streamId}: ${emotion} from ${personName} (intensity: ${(intensity * 100).toFixed(1)}%)`);
     
+    // Check if stream is still active before processing
+    if (!activeStreams.has(streamId)) {
+      console.log(`Stream ${streamId} is not active, ignoring emotion detection`);
+      return;
+    }
+    
     if (activeStreams.has(streamId)) {
       try {
         let responses = [];
@@ -613,15 +637,21 @@ io.on('connection', (socket) => {
             `you look so happy man`,
             `what's got you so excited`,
             `you're cheesing so hard right now`,
-            `why you so hyped`,
+            `glad to see you smiling`,
             `bro is glowing`,
             `someone's having a great time`,
             `look at that smile`,
             `you're beaming`,
-            `what got you smiling like that`,
-            `you look so happy`,
-            `why you so happy right now`,
-            `someone's in a good mood`
+            `that's a contagious smile`,
+            `that grin is everything`,
+            `keep that energy up`,
+            `love seeing you happy`,
+            `that smile is radiating`,
+            `you're all lit up right now`,
+            `what's got you smiling like that`,
+            `the vibes are immaculate`,
+            `that happiness is showing`,
+            `love the positive energy`
           ];
           
           // Select personalities to respond to the smile
@@ -661,12 +691,19 @@ io.on('connection', (socket) => {
             `why you looking down`,
             `what happened`,
             `cheer up man`,
+            `turn that frown upside down`,
             `what's bothering you`,
-            `why the sad face`,
-            `something wrong?`,
-            `why you sad`,
+            `is everything okay?`,
+            `hope you're doing alright`,
+            `sending good vibes`,
             `what's got you down`,
-            `everything okay?`
+            `everything okay?`,
+            `hey you doing okay?`,
+            `hope things get better`,
+            `thinking of you`,
+            `you got this`,
+            `it'll get better`,
+            `hope you feel better soon`
           ];
           
           const toxicSadResponses = [

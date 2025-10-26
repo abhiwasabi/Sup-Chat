@@ -80,6 +80,23 @@
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
 }
 
+.system-message {
+  background: rgba(128, 128, 128, 0.3);
+  border-left: 3px solid #808080;
+  animation: slideInRight 0.4s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 .message-header {
   display: flex;
   justify-content: space-between;

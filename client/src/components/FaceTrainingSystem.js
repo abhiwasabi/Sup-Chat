@@ -385,29 +385,6 @@ const FaceTrainingSystem = () => {
         </div>
 
         <div className="face-info">
-          <h3>👥 Current Faces Detected</h3>
-          <div className="faces-list">
-            {currentFaces.length === 0 ? (
-              <p className="no-faces">No faces detected</p>
-            ) : (
-              currentFaces.map((face, index) => (
-                <div key={index} className="face-item">
-                  <div className="face-info">
-                    <span className="face-name">{face.name}</span>
-                    {face.recognitionConfidence > 0 && (
-                      <span className="recognition-confidence">
-                        Recognition: {(face.recognitionConfidence * 100).toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                  <span className="face-confidence">
-                    Detection: {(face.confidence * 100).toFixed(1)}%
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-
           <div className="known-profiles">
             <h4>📋 People to Train</h4>
             {peopleToTrain.map(person => {
