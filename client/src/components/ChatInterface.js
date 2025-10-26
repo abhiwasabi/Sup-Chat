@@ -62,8 +62,8 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
         // Play donation sound
         playDonationSound();
         
-        // Play TTS for donation message
-        speakDonation(message.message);
+        // Play TTS for donation message with new format
+        speakDonation(message.username, message.amount, message.message);
       }
     });
 
@@ -135,7 +135,7 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
   };
 
   // Text to speech for donation
-  const speakDonation = (text) => {
+  const speakDonation = (username, amount, message) => {
     if ('speechSynthesis' in window) {
       // Get voices and wait for them to load
       const getVoices = () => {
@@ -152,7 +152,11 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
       };
 
       getVoices().then((voices) => {
-        const utterance = new SpeechSynthesisUtterance(text);
+        // Format: "[username] donated [amount] and said [message]"
+        const messageOnly = message.replace(/^\$\d+\s*-\s*/, ''); // Remove amount prefix if present
+        const textToSpeak = `${username} donated ${amount} and said ${messageOnly}`;
+        
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.voice = voices.find(voice => 
           voice.name.toLowerCase().includes('brian') || 
           voice.name.toLowerCase().includes('male') ||
@@ -161,7 +165,7 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         utterance.volume = 0.8;
-        console.log('🎤 Speaking donation message:', text);
+        console.log('🎤 Speaking donation message:', textToSpeak);
         speechSynthesis.speak(utterance);
       });
     }
