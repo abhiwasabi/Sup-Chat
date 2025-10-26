@@ -345,7 +345,7 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
       
       <div className="stream-info">
         <div className="streamer-name-section">
-          <label htmlFor="streamer-name">Your Name:</label>
+          <label htmlFor="streamer-name">Username:</label>
           <input
             id="streamer-name"
             type="text"

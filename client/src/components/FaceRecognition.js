@@ -13,7 +13,9 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
   const [notifications, setNotifications] = useState([]);
   const [lastDetectionTime, setLastDetectionTime] = useState(0);
   const [lastSmileTime, setLastSmileTime] = useState(0);
+  const [lastSadTime, setLastSadTime] = useState(0);
   const [smileNotifications, setSmileNotifications] = useState([]);
+  const [sadNotifications, setSadNotifications] = useState([]);
 
   useEffect(() => {
     console.log('🚀 FaceRecognition component mounted');
@@ -174,17 +176,71 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
       }, 3000);
       
       // Emit smile detection event with person name
-      socket.emit('emotion-detected', {
-        streamId,
-        emotion: 'smile',
-        intensity: expressions.happy,
-        expressions: expressions,
-        personName: personName,
-        timestamp: new Date().toISOString()
-      });
+      if (socket) {
+        socket.emit('emotion-detected', {
+          streamId,
+          emotion: 'smile',
+          intensity: expressions.happy,
+          expressions: expressions,
+          personName: personName,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
     
     return isSmiling;
+  };
+
+  // Detect sadness and emit emotion event
+  const detectSadness = (expressions, personName = 'Someone') => {
+    if (!expressions || !expressions.sad) return false;
+    
+    // Sadness threshold - adjust this value to make it more/less sensitive
+    const sadThreshold = 0.6;
+    const isSad = expressions.sad > sadThreshold;
+    
+    if (isSad) {
+      // Throttle sadness detection to prevent spam (5 second cooldown)
+      const now = Date.now();
+      const timeSinceLastSad = now - lastSadTime;
+      
+      if (timeSinceLastSad < 5000) {
+        console.log(`😢 Sadness detected but throttled (${Math.round(timeSinceLastSad/1000)}s since last sadness)`);
+        return true;
+      }
+      
+      console.log(`😢 SADNESS DETECTED! ${personName} is sad! Sadness level: ${(expressions.sad * 100).toFixed(1)}%`);
+      setLastSadTime(now);
+      
+      // Add visual notification with person name
+      const notification = {
+        id: Date.now(),
+        type: 'sad',
+        message: `😢 ${personName} is sad! (${(expressions.sad * 100).toFixed(1)}%)`,
+        timestamp: new Date().toISOString()
+      };
+      
+      setSadNotifications(prev => [...prev, notification]);
+      
+      // Auto-remove notification after 3 seconds
+      setTimeout(() => {
+        setSadNotifications(prev => prev.filter(n => n.id !== notification.id));
+      }, 3000);
+      
+      // Emit sadness detection event with person name
+      if (socket) {
+        socket.emit('emotion-detected', {
+          streamId,
+          emotion: 'sad',
+          intensity: expressions.sad,
+          expressions: expressions,
+          personName: personName,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
+    return isSad;
   };
 
   // Show notification overlay
@@ -354,9 +410,10 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
         
         console.log(`✅ RECOGNIZED: ${recognizedFace.name} (confidence: ${(recognizedFace.confidence * 100).toFixed(1)}%)`);
         
-        // Detect smile for recognized faces
+        // Detect smile and sadness for recognized faces
         if (detection.expressions) {
           detectSmile(detection.expressions, recognizedFace.name);
+          detectSadness(detection.expressions, recognizedFace.name);
         }
         
         // Emit face detection event for each recognized face
@@ -379,9 +436,10 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
         
         console.log('❓ Unknown person detected');
         
-        // Detect smile for unknown faces too
+        // Detect smile and sadness for unknown faces too
         if (detection.expressions) {
           detectSmile(detection.expressions, 'Unknown Person');
+          detectSadness(detection.expressions, 'Unknown Person');
         }
         
         // Emit face detection event for unknown person
@@ -464,6 +522,18 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
           <div 
             key={notification.id} 
             className="smile-notification"
+          >
+            {notification.message}
+          </div>
+        ))}
+      </div>
+
+      {/* Sad Notification Overlay */}
+      <div className="sad-notification-overlay">
+        {sadNotifications.map(notification => (
+          <div 
+            key={notification.id} 
+            className="sad-notification"
           >
             {notification.message}
           </div>

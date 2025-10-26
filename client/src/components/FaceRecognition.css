@@ -593,6 +593,44 @@
   }
 }
 
+/* Sad Notification Overlay */
+.sad-notification-overlay {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.sad-notification {
+  padding: 15px 20px;
+  border-radius: 12px;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: sadSlideIn 0.5s ease-out;
+  max-width: 300px;
+  word-wrap: break-word;
+  background: linear-gradient(135deg, #4A90E2, #5BA8FF);
+  border: 2px solid #357ABD;
+  backdrop-filter: blur(10px);
+}
+
+@keyframes sadSlideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* Face Status Display - Bottom Right */
 .face-status-display {
   position: fixed;

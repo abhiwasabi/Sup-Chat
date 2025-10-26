@@ -596,59 +596,114 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Handle emotion detection (smile detection)
+  // Handle emotion detection (smile and sadness detection)
   socket.on('emotion-detected', async (data) => {
     const { streamId, emotion, intensity, expressions, personName, timestamp } = data;
     console.log(`😊 Emotion detected in stream ${streamId}: ${emotion} from ${personName} (intensity: ${(intensity * 100).toFixed(1)}%)`);
     
-    if (activeStreams.has(streamId) && emotion === 'smile') {
+    if (activeStreams.has(streamId)) {
       try {
-        // Generate personality responses to the smile with person name - happy and excited theme
-        const smileResponses = [
-          `you look so happy man`,
-          `what's got you so excited`,
-          `you're cheesing so hard right now`,
-          `why you so hyped`,
-          `bro is glowing`,
-          `someone's having a great time`,
-          `look at that smile`,
-          `you're beaming`,
-          `what got you smiling like that`,
-          `you look so happy`,
-          `why you so happy right now`,
-          `someone's in a good mood`
-        ];
-        
-        // Select 2-3 random personalities to respond to the smile
-        const numResponses = Math.floor(Math.random() * 2) + 2; // 2-3 responses
+        let responses = [];
+        let numResponses = Math.floor(Math.random() * 2) + 2; // 2-3 responses
         const usedPersonalities = new Set();
-        const responsePromises = [];
         
-        for (let i = 0; i < numResponses; i++) {
-          let personality;
-          do {
-            personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
-          } while (usedPersonalities.has(personality.name) && usedPersonalities.size < chatPersonalities.length);
+        if (emotion === 'smile') {
+          // Generate personality responses to the smile with person name - happy and excited theme
+          const smileResponses = [
+            `you look so happy man`,
+            `what's got you so excited`,
+            `you're cheesing so hard right now`,
+            `why you so hyped`,
+            `bro is glowing`,
+            `someone's having a great time`,
+            `look at that smile`,
+            `you're beaming`,
+            `what got you smiling like that`,
+            `you look so happy`,
+            `why you so happy right now`,
+            `someone's in a good mood`
+          ];
           
-          usedPersonalities.add(personality.name);
-          
-          // Generate contextual response about the smile with happy/excited theme
-          const randomResponse = smileResponses[Math.floor(Math.random() * smileResponses.length)];
-          
-          const smileMessage = {
-            id: Date.now() + Math.random() + i,
-            username: personality.name,
-            message: randomResponse,
-            timestamp: new Date().toISOString(),
-            isContextual: true,
-            basedOnEmotion: 'smile'
+          // Select personalities to respond to the smile
+          for (let i = 0; i < numResponses; i++) {
+            let personality;
+            do {
+              personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+            } while (usedPersonalities.has(personality.name) && usedPersonalities.size < chatPersonalities.length);
+            
+            usedPersonalities.add(personality.name);
+            
+            // Generate contextual response about the smile with happy/excited theme
+            const randomResponse = smileResponses[Math.floor(Math.random() * smileResponses.length)];
+            
+            const smileMessage = {
+              id: Date.now() + Math.random() + i,
+              username: personality.name,
+              message: randomResponse,
+              timestamp: new Date().toISOString(),
+              isContextual: true,
+              basedOnEmotion: 'smile'
+            };
+            
+            responses.push(smileMessage);
+          }
+        } else if (emotion === 'sad') {
+          // Generate personality responses to sadness with sad/concerned theme
+          // Toxic personalities maintain their personality
+          const isToxic = (personality) => {
+            const toxicNames = ['xQc', 'Tyler1', 'KEEMSTAR', 'Doctor Disrespect', 'Richard Lewis'];
+            return toxicNames.includes(personality.name);
           };
           
-          responsePromises.push(smileMessage);
+          const sadResponses = [
+            `why so sad`,
+            `what's wrong`,
+            `why you looking down`,
+            `what happened`,
+            `cheer up man`,
+            `what's bothering you`,
+            `why the sad face`,
+            `something wrong?`,
+            `why you sad`,
+            `what's got you down`,
+            `everything okay?`
+          ];
+          
+          const toxicSadResponses = [
+            `lol why he sad`,
+            `bro crying`,
+            `he's actually sad`,
+            `someone's having a rough day`,
+            `look at this guy`
+          ];
+          
+          // Select personalities to respond to the sadness
+          for (let i = 0; i < numResponses; i++) {
+            let personality;
+            do {
+              personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+            } while (usedPersonalities.has(personality.name) && usedPersonalities.size < chatPersonalities.length);
+            
+            usedPersonalities.add(personality.name);
+            
+            // Use toxic responses for toxic personalities, caring responses for others
+            const responseList = isToxic(personality) ? toxicSadResponses : sadResponses;
+            const randomResponse = responseList[Math.floor(Math.random() * responseList.length)];
+            
+            const sadMessage = {
+              id: Date.now() + Math.random() + i,
+              username: personality.name,
+              message: randomResponse,
+              timestamp: new Date().toISOString(),
+              isContextual: true,
+              basedOnEmotion: 'sad'
+            };
+            
+            responses.push(sadMessage);
+          }
         }
         
         // Send responses with staggered timing
-        const responses = await Promise.all(responsePromises);
         responses.forEach((message, index) => {
           setTimeout(() => {
             io.to(streamId).emit('fake-chat-message', message);
@@ -656,7 +711,7 @@ io.on('connection', (socket) => {
         });
         
       } catch (error) {
-        console.error("Error generating smile responses:", error);
+        console.error("Error generating emotion responses:", error);
       }
     }
   });
