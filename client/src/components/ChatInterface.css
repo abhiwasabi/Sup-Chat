@@ -74,6 +74,12 @@
   border-left: 3px solid #00ff00;
 }
 
+.donation-message {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 223, 0, 0.3));
+  border-left: 3px solid #FFD700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
 .message-header {
   display: flex;
   justify-content: space-between;

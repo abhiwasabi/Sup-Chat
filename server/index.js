@@ -273,9 +273,48 @@ io.on('connection', (socket) => {
     
     if (activeStreams.has(streamId)) {
       try {
+        // Check if streamer is asking for donations
+        const speechLower = speechContent.toLowerCase();
+        const donationKeywords = ['donate', 'donation', 'dono', 'support', 'gift', 'tip', 'super chat', 'bits'];
+        const isDonationRequest = donationKeywords.some(keyword => speechLower.includes(keyword));
+        
+        if (isDonationRequest) {
+          console.log(`💰 Donation request detected! Generating donation message...`);
+          
+          // Generate ONE donation from a random personality
+          const personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+          
+          // Generate donation message with amount and message
+          const amounts = ['$1', '$2', '$3', '$5', '$8', '$10', '$12', '$15', '$18', '$20', '$22', '$25', '$28', '$30'];
+          const randomAmount = amounts[Math.floor(Math.random() * amounts.length)];
+          
+          const donationMessages = [
+            `${randomAmount} - Keep up the great work!`,
+            `${randomAmount} - Love your content!`,
+            `${randomAmount} - This stream is amazing!`,
+            `${randomAmount} - Thanks for the entertainment!`,
+            `${randomAmount} - You're awesome!`,
+            `${randomAmount} - Deserved!`,
+            `${randomAmount} - Keep grinding!`
+          ];
+          
+          const donationMessage = {
+            id: Date.now() + Math.random(),
+            username: personality.name,
+            message: donationMessages[Math.floor(Math.random() * donationMessages.length)],
+            timestamp: new Date().toISOString(),
+            isDonation: true,
+            amount: randomAmount
+          };
+          
+          // Send donation
+          io.to(streamId).emit('donation-message', donationMessage);
+          
+          return; // Exit early after handling donations
+        }
+        
         // Check if any personality names are mentioned in the speech
         const mentionedPersonalities = [];
-        const speechLower = speechContent.toLowerCase();
         
         console.log(`🔍 Checking speech: "${speechContent}"`);
         
@@ -564,18 +603,20 @@ io.on('connection', (socket) => {
     
     if (activeStreams.has(streamId) && emotion === 'smile') {
       try {
-        // Generate personality responses to the smile with person name
+        // Generate personality responses to the smile with person name - happy and excited theme
         const smileResponses = [
-          `what you smiling so hard for ${personName} 😭`,
-          `why you cheesing so much ${personName} 😹`,
-          `${personName} is in a good mood today`,
-          `that smile is contagious ${personName}`,
-          `what's got you so happy ${personName}`,
-          `you're glowing today ${personName}`,
-          `that's a beautiful smile ${personName}`,
-          `${personName} is having a great day`,
-          `that smile could light up a room ${personName}`,
-          `what's the secret to that smile ${personName}`
+          `you look so happy man`,
+          `what's got you so excited`,
+          `you're cheesing so hard right now`,
+          `why you so hyped`,
+          `bro is glowing`,
+          `someone's having a great time`,
+          `look at that smile`,
+          `you're beaming`,
+          `what got you smiling like that`,
+          `you look so happy`,
+          `why you so happy right now`,
+          `someone's in a good mood`
         ];
         
         // Select 2-3 random personalities to respond to the smile
@@ -591,12 +632,17 @@ io.on('connection', (socket) => {
           
           usedPersonalities.add(personality.name);
           
-          // Generate contextual response about the smile with person name
-          const smileMessage = await generateFakeMessage(
-            activeStreams.get(streamId).streamerName,
-            personality,
-            `${personName} is smiling! Happiness level: ${(intensity * 100).toFixed(1)}%`
-          );
+          // Generate contextual response about the smile with happy/excited theme
+          const randomResponse = smileResponses[Math.floor(Math.random() * smileResponses.length)];
+          
+          const smileMessage = {
+            id: Date.now() + Math.random() + i,
+            username: personality.name,
+            message: randomResponse,
+            timestamp: new Date().toISOString(),
+            isContextual: true,
+            basedOnEmotion: 'smile'
+          };
           
           responsePromises.push(smileMessage);
         }

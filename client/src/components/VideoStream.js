@@ -10,6 +10,10 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
   const [viewerCount, setViewerCount] = useState(0);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [donationOverlay, setDonationOverlay] = useState(null);
+  const [donationFadeOut, setDonationFadeOut] = useState(false);
+  const [donationGoal, setDonationGoal] = useState(100); // Default $100 goal
+  const [donationProgress, setDonationProgress] = useState(0);
 
   const startVideo = async () => {
     try {
@@ -45,22 +49,81 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
     setIsVideoActive(false);
   };
 
+  // Play ding sound
+  const playDingSound = () => {
+    // Create audio context for ding sound
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Ding sound: short beep
+    oscillator.frequency.value = 800; // Hz
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+  };
+
+  // Play Twitch donation sound
+  const playTwitchDonationSound = () => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Create the famous Twitch donation "cha-ching" sound effect
+    // It's a rising and falling tone that sounds like "ding ding ding"
+    const notes = [
+      { freq: 330, duration: 0.1, delay: 0 },
+      { freq: 392, duration: 0.1, delay: 0.15 },
+      { freq: 523, duration: 0.1, delay: 0.3 }
+    ];
+    
+    notes.forEach(note => {
+      setTimeout(() => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = note.freq;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + note.duration);
+      }, note.delay * 1000);
+    });
+  };
+
   // Handle countdown and start stream
   const handleStartStream = () => {
     setShowCountdown(true);
     setCountdown(3);
     
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          setShowCountdown(false);
-          onStartStream();
-          return 3;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    // Play initial ding
+    playDingSound();
+    
+          const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            setShowCountdown(false);
+            playTwitchDonationSound(); // Play Twitch donation sound when stream starts
+            onStartStream();
+            return 3;
+          }
+          // Play ding for each number
+          playDingSound();
+          return prev - 1;
+        });
+      }, 1000);
   };
 
   useEffect(() => {
@@ -152,9 +215,34 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
       setViewerCount(0);
     });
 
+    // Listen for donation events to display on screen
+    socket.on('donation-message', (donation) => {
+      setDonationOverlay(donation);
+      setDonationFadeOut(false);
+      
+      // Extract amount from donation message and update progress
+      const amountMatch = donation.message.match(/\$(\d+)/);
+      if (amountMatch) {
+        const amount = parseInt(amountMatch[1]);
+        setDonationProgress(prev => prev + amount);
+      }
+      
+      // Start fade out after 4 seconds
+      setTimeout(() => {
+        setDonationFadeOut(true);
+      }, 4000);
+      
+      // Hide after fade animation completes (5.5 seconds total)
+      setTimeout(() => {
+        setDonationOverlay(null);
+        setDonationFadeOut(false);
+      }, 5500);
+    });
+
     return () => {
       socket.off('audience-update');
       socket.off('stream-stopped');
+      socket.off('donation-message');
     };
   }, [socket]);
 
@@ -193,6 +281,20 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
           </div>
         )}
         
+        {/* Donation Overlay */}
+        {donationOverlay && (
+          <div className={`donation-overlay-screen ${donationFadeOut ? 'fade-out' : ''}`}>
+            <div className="donation-overlay-content">
+              <div className="donation-overlay-text">
+                {donationOverlay.username} donated {donationOverlay.amount}!
+              </div>
+              <div className="donation-overlay-message">
+                {donationOverlay.message.replace(/^\$\d+\s*-\s*/, '')}
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Status overlay in top left */}
         <div className="status-overlay">
           <div className="status-row">
@@ -206,7 +308,7 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
                 {isStreaming ? 'LIVE' : 'OFFLINE'}
               </div>
               <div className="viewer-count">
-                👥 {viewerCount}
+                👤 {viewerCount}
               </div>
             </div>
             <div className="status-right">
@@ -218,6 +320,27 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
             </div>
           </div>
         </div>
+        
+        {/* Donation Goal Display - under the indicator */}
+        {isStreaming && (
+          <div className="donation-goal-overlay">
+            <div className="donation-goal-header">
+              <span className="donation-goal-icon">💰</span>
+              <span className="donation-goal-title">Donation Goal</span>
+            </div>
+            <div className="donation-goal-progress">
+              <div className="donation-goal-text">
+                ${donationProgress} / ${donationGoal}
+              </div>
+              <div className="donation-goal-bar">
+                <div 
+                  className="donation-goal-fill" 
+                  style={{ width: `${Math.min(100, (donationProgress / donationGoal) * 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="stream-info">

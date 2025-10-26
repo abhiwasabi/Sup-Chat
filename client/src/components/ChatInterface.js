@@ -47,6 +47,18 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
       setMessages(prev => [...prev, { ...message, isReal: true }]);
     });
 
+    // Listen for donation messages
+    socket.on('donation-message', (message) => {
+      console.log('💰 Donation message received:', message);
+      setMessages(prev => [...prev, { ...message, isDonation: true }]);
+      
+      // Play donation sound
+      playDonationSound();
+      
+      // Play TTS for donation message
+      speakDonation(message.message);
+    });
+
     // Listen for audience count updates
     socket.on('audience-update', (count) => {
       setAudienceCount(count);
@@ -61,10 +73,75 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
     return () => {
       socket.off('fake-chat-message');
       socket.off('real-chat-message');
+      socket.off('donation-message');
       socket.off('audience-update');
       socket.off('stream-stopped');
     };
   }, [socket]);
+
+  // Play donation sound
+  const playDonationSound = () => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Twitch donation sound - ascending notes
+    const notes = [
+      { freq: 330, duration: 0.1, delay: 0 },
+      { freq: 392, duration: 0.1, delay: 0.15 },
+      { freq: 523, duration: 0.1, delay: 0.3 }
+    ];
+    
+    notes.forEach(note => {
+      setTimeout(() => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = note.freq;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + note.duration);
+      }, note.delay * 1000);
+    });
+  };
+
+  // Text to speech for donation
+  const speakDonation = (text) => {
+    if ('speechSynthesis' in window) {
+      // Get voices and wait for them to load
+      const getVoices = () => {
+        return new Promise((resolve) => {
+          let voices = speechSynthesis.getVoices();
+          if (voices.length > 0) {
+            resolve(voices);
+          } else {
+            speechSynthesis.onvoiceschanged = () => {
+              resolve(speechSynthesis.getVoices());
+            };
+          }
+        });
+      };
+
+      getVoices().then((voices) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = voices.find(voice => 
+          voice.name.toLowerCase().includes('brian') || 
+          voice.name.toLowerCase().includes('male') ||
+          voice.lang.startsWith('en')
+        ) || voices[0];
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        console.log('🎤 Speaking donation message:', text);
+        speechSynthesis.speak(utterance);
+      });
+    }
+  };
 
 
   return (
@@ -78,11 +155,15 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
           messages.map((msg) => (
             <div 
               key={msg.id} 
-              className={`chat-message ${msg.isFake ? 'fake-message' : msg.isReal ? 'real-message' : ''}`}
+              className={`chat-message ${
+                msg.isDonation ? 'donation-message' : 
+                msg.isFake ? 'fake-message' : 
+                msg.isReal ? 'real-message' : ''
+              }`}
             >
             <div className="message-header">
               <span className="username">
-                {msg.username}
+                {msg.isDonation && '💰 '}{msg.username}
               </span>
               <span className="message-time">
                 {new Date(msg.timestamp).toLocaleTimeString()}
