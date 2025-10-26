@@ -12,6 +12,8 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [lastDetectionTime, setLastDetectionTime] = useState(0);
+  const [lastSmileTime, setLastSmileTime] = useState(0);
+  const [smileNotifications, setSmileNotifications] = useState([]);
 
   useEffect(() => {
     console.log('🚀 FaceRecognition component mounted');
@@ -133,6 +135,56 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
     }
 
     return bestMatch;
+  };
+
+  // Detect smile and emit emotion event
+  const detectSmile = (expressions, personName = 'Someone') => {
+    if (!expressions || !expressions.happy) return false;
+    
+    // Smile threshold - adjust this value to make it more/less sensitive
+    const smileThreshold = 0.6;
+    const isSmiling = expressions.happy > smileThreshold;
+    
+    if (isSmiling) {
+      // Throttle smile detection to prevent spam (5 second cooldown)
+      const now = Date.now();
+      const timeSinceLastSmile = now - lastSmileTime;
+      
+      if (timeSinceLastSmile < 5000) {
+        console.log(`😊 Smile detected but throttled (${Math.round(timeSinceLastSmile/1000)}s since last smile)`);
+        return true;
+      }
+      
+      console.log(`😊 SMILE DETECTED! ${personName} is happy! Happiness level: ${(expressions.happy * 100).toFixed(1)}%`);
+      setLastSmileTime(now);
+      
+      // Add visual notification with person name
+      const notification = {
+        id: Date.now(),
+        type: 'smile',
+        message: `😊 ${personName} is happy! (${(expressions.happy * 100).toFixed(1)}%)`,
+        timestamp: new Date().toISOString()
+      };
+      
+      setSmileNotifications(prev => [...prev, notification]);
+      
+      // Auto-remove notification after 3 seconds
+      setTimeout(() => {
+        setSmileNotifications(prev => prev.filter(n => n.id !== notification.id));
+      }, 3000);
+      
+      // Emit smile detection event with person name
+      socket.emit('emotion-detected', {
+        streamId,
+        emotion: 'smile',
+        intensity: expressions.happy,
+        expressions: expressions,
+        personName: personName,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    return isSmiling;
   };
 
   // Show notification overlay
@@ -302,6 +354,11 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
         
         console.log(`✅ RECOGNIZED: ${recognizedFace.name} (confidence: ${(recognizedFace.confidence * 100).toFixed(1)}%)`);
         
+        // Detect smile for recognized faces
+        if (detection.expressions) {
+          detectSmile(detection.expressions, recognizedFace.name);
+        }
+        
         // Emit face detection event for each recognized face
         socket.emit('face-detected', {
           streamId,
@@ -321,6 +378,11 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
         });
         
         console.log('❓ Unknown person detected');
+        
+        // Detect smile for unknown faces too
+        if (detection.expressions) {
+          detectSmile(detection.expressions, 'Unknown Person');
+        }
         
         // Emit face detection event for unknown person
         socket.emit('face-detected', {
@@ -390,6 +452,18 @@ const FaceRecognition = ({ socket, streamId, isStreaming }) => {
           <div 
             key={notification.id} 
             className={`notification notification-${notification.type}`}
+          >
+            {notification.message}
+          </div>
+        ))}
+      </div>
+
+      {/* Smile Notification Overlay */}
+      <div className="smile-notification-overlay">
+        {smileNotifications.map(notification => (
+          <div 
+            key={notification.id} 
+            className="smile-notification"
           >
             {notification.message}
           </div>

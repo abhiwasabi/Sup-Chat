@@ -8,6 +8,8 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [error, setError] = useState(null);
   const [viewerCount, setViewerCount] = useState(0);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
   const startVideo = async () => {
     try {
@@ -43,6 +45,24 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
     setIsVideoActive(false);
   };
 
+  // Handle countdown and start stream
+  const handleStartStream = () => {
+    setShowCountdown(true);
+    setCountdown(3);
+    
+    const countdownInterval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setShowCountdown(false);
+          onStartStream();
+          return 3;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   useEffect(() => {
     if (isStreaming && !isVideoActive) {
       startVideo();
@@ -53,18 +73,51 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
 
   // Simulate viewer count changes when streaming
   useEffect(() => {
+    let initialAnimationTimeout;
     let interval;
+    
     if (isStreaming) {
-      // Start with a random number between 5-15
-      setViewerCount(Math.floor(Math.random() * 11) + 5);
+      // Start at 0
+      setViewerCount(0);
       
+      // Slowly increase from 0 to 11
+      initialAnimationTimeout = setTimeout(() => {
+        const animateToEleven = () => {
+          setViewerCount(prev => {
+            if (prev < 11) {
+              // Increase by 1 viewer at a time for slower animation
+              return prev + 1;
+            }
+            return prev;
+          });
+        };
+        
+        // Update every 300ms for slower animation
+        const slowInterval = setInterval(() => {
+          animateToEleven();
+          if (viewerCount >= 11) {
+            clearInterval(slowInterval);
+          }
+        }, 300);
+        
+        // Cleanup after reaching 11
+        setTimeout(() => {
+          clearInterval(slowInterval);
+          setViewerCount(11);
+        }, 3500);
+      }, 1000); // Wait 1 second before starting the animation
+      
+      // After reaching 11, continue with normal fluctuations
       interval = setInterval(() => {
         setViewerCount(prev => {
-          // Randomly increase or decrease by 1-3 viewers
-          const change = Math.floor(Math.random() * 3) + 1;
-          const direction = Math.random() > 0.5 ? 1 : -1;
-          const newCount = prev + (change * direction);
-          return Math.max(1, Math.min(25, newCount)); // Keep between 1-25
+          if (prev >= 11) {
+            // Randomly increase or decrease by 1-2 viewers
+            const change = Math.floor(Math.random() * 2) + 1;
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            const newCount = prev + (change * direction);
+            return Math.max(9, Math.min(15, newCount)); // Keep between 9-15
+          }
+          return prev;
         });
       }, 3000); // Update every 3 seconds
     } else {
@@ -72,6 +125,9 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
     }
 
     return () => {
+      if (initialAnimationTimeout) {
+        clearTimeout(initialAnimationTimeout);
+      }
       if (interval) {
         clearInterval(interval);
       }
@@ -130,6 +186,13 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
           </div>
         )}
         
+        {/* Countdown Overlay */}
+        {showCountdown && (
+          <div className="countdown-overlay">
+            <div className="countdown-number">{countdown}</div>
+          </div>
+        )}
+        
         {/* Status overlay in top left */}
         <div className="status-overlay">
           <div className="status-row">
@@ -173,9 +236,9 @@ const VideoStream = ({ socket, isStreaming, streamerName, setStreamerName, onSta
         <div className="stream-controls">
           {!isStreaming ? (
             <button 
-              onClick={onStartStream}
+              onClick={handleStartStream}
               className="start-stream-btn"
-              disabled={!streamerName.trim()}
+              disabled={!streamerName.trim() || showCountdown}
             >
               Start Streaming
             </button>

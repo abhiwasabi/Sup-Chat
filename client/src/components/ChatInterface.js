@@ -7,52 +7,20 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
   const [wasStreaming, setWasStreaming] = useState(false);
   const messagesEndRef = useRef(null);
   const chatMessagesRef = useRef(null);
-  const [isUserScrolledUp, setIsUserScrolledUp] = useState(false);
-  const [newMessagesCount, setNewMessagesCount] = useState(0);
 
   const clearChat = () => {
     setMessages([]);
   };
 
-  const handleScrollToBottom = () => {
-    scrollToBottom();
-    setNewMessagesCount(0);
-    setIsUserScrolledUp(false);
-  };
-
-  // Smart auto-scroll: only scroll if user is at bottom
+  // Auto-scroll to bottom on new messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Check if user is at bottom of chat
-  const checkIfAtBottom = () => {
-    if (chatMessagesRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = chatMessagesRef.current;
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50; // 50px threshold
-      setIsUserScrolledUp(!isAtBottom);
-    }
-  };
-
-  // Auto-scroll only if user is at bottom
+  // Auto-scroll whenever new messages arrive
   useEffect(() => {
-    if (!isUserScrolledUp) {
-      scrollToBottom();
-      setNewMessagesCount(0); // Reset counter when auto-scrolling
-    } else {
-      // User is scrolled up, increment new messages counter
-      setNewMessagesCount(prev => prev + 1);
-    }
-  }, [messages, isUserScrolledUp]);
-
-  // Add scroll listener to detect user scrolling
-  useEffect(() => {
-    const chatElement = chatMessagesRef.current;
-    if (chatElement) {
-      chatElement.addEventListener('scroll', checkIfAtBottom);
-      return () => chatElement.removeEventListener('scroll', checkIfAtBottom);
-    }
-  }, []);
+    scrollToBottom();
+  }, [messages]);
 
   // Track streaming state changes
   useEffect(() => {
@@ -129,17 +97,6 @@ const ChatInterface = ({ socket, streamId, isStreaming }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Scroll to bottom button - only show when user is scrolled up */}
-      {isUserScrolledUp && newMessagesCount > 0 && (
-        <div className="scroll-to-bottom-container">
-          <button 
-            onClick={handleScrollToBottom}
-            className="scroll-to-bottom-btn"
-          >
-            ↓ {newMessagesCount} new message{newMessagesCount > 1 ? 's' : ''}
-          </button>
-        </div>
-      )}
 
     </div>
   );

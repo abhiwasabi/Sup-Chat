@@ -557,6 +557,64 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Handle emotion detection (smile detection)
+  socket.on('emotion-detected', async (data) => {
+    const { streamId, emotion, intensity, expressions, personName, timestamp } = data;
+    console.log(`😊 Emotion detected in stream ${streamId}: ${emotion} from ${personName} (intensity: ${(intensity * 100).toFixed(1)}%)`);
+    
+    if (activeStreams.has(streamId) && emotion === 'smile') {
+      try {
+        // Generate personality responses to the smile with person name
+        const smileResponses = [
+          `what you smiling so hard for ${personName} 😭`,
+          `why you cheesing so much ${personName} 😹`,
+          `${personName} is in a good mood today`,
+          `that smile is contagious ${personName}`,
+          `what's got you so happy ${personName}`,
+          `you're glowing today ${personName}`,
+          `that's a beautiful smile ${personName}`,
+          `${personName} is having a great day`,
+          `that smile could light up a room ${personName}`,
+          `what's the secret to that smile ${personName}`
+        ];
+        
+        // Select 2-3 random personalities to respond to the smile
+        const numResponses = Math.floor(Math.random() * 2) + 2; // 2-3 responses
+        const usedPersonalities = new Set();
+        const responsePromises = [];
+        
+        for (let i = 0; i < numResponses; i++) {
+          let personality;
+          do {
+            personality = chatPersonalities[Math.floor(Math.random() * chatPersonalities.length)];
+          } while (usedPersonalities.has(personality.name) && usedPersonalities.size < chatPersonalities.length);
+          
+          usedPersonalities.add(personality.name);
+          
+          // Generate contextual response about the smile with person name
+          const smileMessage = await generateFakeMessage(
+            activeStreams.get(streamId).streamerName,
+            personality,
+            `${personName} is smiling! Happiness level: ${(intensity * 100).toFixed(1)}%`
+          );
+          
+          responsePromises.push(smileMessage);
+        }
+        
+        // Send responses with staggered timing
+        const responses = await Promise.all(responsePromises);
+        responses.forEach((message, index) => {
+          setTimeout(() => {
+            io.to(streamId).emit('fake-chat-message', message);
+          }, index * 500); // 500ms delay between responses
+        });
+        
+      } catch (error) {
+        console.error("Error generating smile responses:", error);
+      }
+    }
+  });
+
   // Cleanup on disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
