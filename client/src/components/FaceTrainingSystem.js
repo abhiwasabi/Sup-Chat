@@ -10,13 +10,13 @@ const FaceTrainingSystem = () => {
   const [isTraining, setIsTraining] = useState(false);
   const [trainingProgress, setTrainingProgress] = useState({});
   const [currentFaces, setCurrentFaces] = useState([]);
-
-  // Predefined people to train
-  const peopleToTrain = [
+  const [peopleToTrain, setPeopleToTrain] = useState([
     { id: 'mehdi', name: 'Mehdi', description: 'Mehdi - wearing white shirt, round glasses' },
     { id: 'abhi', name: 'Abhi', description: 'Abhi - wearing blue jacket, no glasses' },
-    { id: 'badri', name: 'Badri', description: 'Badri - gaming streamer with beard' }
-  ];
+    { id: 'badri', name: 'Badri', description: 'Badri - gaming streamer with beard' },
+    { id: 'person4', name: 'Name', description: 'New person' }
+  ]);
+  const [editingName, setEditingName] = useState({});
 
   useEffect(() => {
     initializeFaceAPI();
@@ -303,6 +303,27 @@ const FaceTrainingSystem = () => {
     console.log('🗑️ Cleared all training data');
   };
 
+  const handleNameEdit = (personId, newName) => {
+    setPeopleToTrain(prev => 
+      prev.map(person => 
+        person.id === personId ? { ...person, name: newName } : person
+      )
+    );
+    setEditingName(prev => ({ ...prev, [personId]: false }));
+  };
+
+  const startEditingName = (personId) => {
+    setEditingName(prev => ({ ...prev, [personId]: true }));
+  };
+
+  const removePerson = (personId) => {
+    setPeopleToTrain(prev => prev.filter(person => person.id !== personId));
+    // Also remove from trained faces if they were trained
+    const updatedKnownFaces = knownFaces.filter(face => face.id !== personId);
+    setKnownFaces(updatedKnownFaces);
+    saveFaces(updatedKnownFaces);
+  };
+
   const debugTrainingData = () => {
     const savedData = localStorage.getItem('trainedFaces');
     console.log('🔍 Debug - Training data in localStorage:', savedData);
@@ -397,7 +418,31 @@ const FaceTrainingSystem = () => {
               return (
                 <div key={person.id} className="profile-item">
                   <div className="profile-info">
-                    <strong>{person.name}</strong>: {person.description}
+                    {editingName[person.id] ? (
+                      <input
+                        type="text"
+                        defaultValue={person.name}
+                        onBlur={(e) => handleNameEdit(person.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleNameEdit(person.id, e.target.value);
+                          }
+                        }}
+                        autoFocus
+                        style={{
+                          fontSize: '1rem',
+                          fontWeight: 'bold',
+                          padding: '0.25rem',
+                          border: '2px solid #9146ff',
+                          borderRadius: '4px'
+                        }}
+                      />
+                    ) : (
+                      <strong onClick={() => startEditingName(person.id)} style={{ cursor: 'pointer' }}>
+                        {person.name}
+                      </strong>
+                    )}
+                    : {person.description}
                     <span className={`training-status ${isTrained ? 'trained' : 'not-trained'}`}>
                       {isTrained ? '✅ Trained' : '❌ Not Trained'}
                     </span>
@@ -415,13 +460,22 @@ const FaceTrainingSystem = () => {
                     </div>
                   )}
                   
-                  <button
-                    onClick={() => trainPerson(person.id, person.name)}
-                    disabled={isTraining || !isInitialized}
-                    className="btn btn-train"
-                  >
-                    {isCurrentlyTraining ? '🎓 Training...' : '🎓 Train Face'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <button
+                      onClick={() => trainPerson(person.id, person.name)}
+                      disabled={isTraining || !isInitialized}
+                      className="btn btn-train"
+                    >
+                      {isCurrentlyTraining ? '🎓 Training...' : '🎓 Train Face'}
+                    </button>
+                    <button
+                      onClick={() => removePerson(person.id)}
+                      className="btn btn-danger"
+                      style={{ padding: '0.5rem 1rem' }}
+                    >
+                      🗑️ Remove
+                    </button>
+                  </div>
                 </div>
               );
             })}
