@@ -17,6 +17,7 @@ const FaceTrainingSystem = () => {
     { id: 'person4', name: 'Name', description: 'New person' }
   ]);
   const [editingName, setEditingName] = useState({});
+  const [editingDescription, setEditingDescription] = useState({});
 
   useEffect(() => {
     initializeFaceAPI();
@@ -312,8 +313,21 @@ const FaceTrainingSystem = () => {
     setEditingName(prev => ({ ...prev, [personId]: false }));
   };
 
+  const handleDescriptionEdit = (personId, newDescription) => {
+    setPeopleToTrain(prev => 
+      prev.map(person => 
+        person.id === personId ? { ...person, description: newDescription } : person
+      )
+    );
+    setEditingDescription(prev => ({ ...prev, [personId]: false }));
+  };
+
   const startEditingName = (personId) => {
     setEditingName(prev => ({ ...prev, [personId]: true }));
+  };
+
+  const startEditingDescription = (personId) => {
+    setEditingDescription(prev => ({ ...prev, [personId]: true }));
   };
 
   const removePerson = (personId) => {
@@ -322,6 +336,19 @@ const FaceTrainingSystem = () => {
     const updatedKnownFaces = knownFaces.filter(face => face.id !== personId);
     setKnownFaces(updatedKnownFaces);
     saveFaces(updatedKnownFaces);
+  };
+
+  const addNewPerson = () => {
+    const newId = `person_${Date.now()}`;
+    const newPerson = {
+      id: newId,
+      name: 'New Person',
+      description: 'Click to edit name and description'
+    };
+    setPeopleToTrain(prev => [...prev, newPerson]);
+    // Start editing both name and description immediately
+    setEditingName(prev => ({ ...prev, [newId]: true }));
+    setEditingDescription(prev => ({ ...prev, [newId]: true }));
   };
 
   const debugTrainingData = () => {
@@ -386,7 +413,16 @@ const FaceTrainingSystem = () => {
 
         <div className="face-info">
           <div className="known-profiles">
-            <h4>📋 People to Train</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h4>📋 People to Train</h4>
+              <button
+                onClick={addNewPerson}
+                className="btn btn-success"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+              >
+                ➕ Add New Person
+              </button>
+            </div>
             {peopleToTrain.map(person => {
               const isTrained = knownFaces.some(face => face.id === person.id);
               const isCurrentlyTraining = isTraining && trainingProgress[person.id] !== undefined;
@@ -395,34 +431,64 @@ const FaceTrainingSystem = () => {
               return (
                 <div key={person.id} className="profile-item">
                   <div className="profile-info">
-                    {editingName[person.id] ? (
-                      <input
-                        type="text"
-                        defaultValue={person.name}
-                        onBlur={(e) => handleNameEdit(person.id, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleNameEdit(person.id, e.target.value);
-                          }
-                        }}
-                        autoFocus
-                        style={{
-                          fontSize: '1rem',
-                          fontWeight: 'bold',
-                          padding: '0.25rem',
-                          border: '2px solid #9146ff',
-                          borderRadius: '4px'
-                        }}
-                      />
-                    ) : (
-                      <strong onClick={() => startEditingName(person.id)} style={{ cursor: 'pointer' }}>
-                        {person.name}
-                      </strong>
-                    )}
-                    : {person.description}
-                    <span className={`training-status ${isTrained ? 'trained' : 'not-trained'}`}>
-                      {isTrained ? '✅ Trained' : '❌ Not Trained'}
-                    </span>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      {editingName[person.id] ? (
+                        <input
+                          type="text"
+                          defaultValue={person.name}
+                          onBlur={(e) => handleNameEdit(person.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleNameEdit(person.id, e.target.value);
+                            }
+                          }}
+                          autoFocus
+                          placeholder="Enter name"
+                          style={{
+                            fontSize: '1rem',
+                            fontWeight: 'bold',
+                            padding: '0.25rem',
+                            border: '2px solid #9146ff',
+                            borderRadius: '4px',
+                            width: '200px'
+                          }}
+                        />
+                      ) : (
+                        <strong onClick={() => startEditingName(person.id)} style={{ cursor: 'pointer' }}>
+                          {person.name}
+                        </strong>
+                      )}
+                      <span className={`training-status ${isTrained ? 'trained' : 'not-trained'}`} style={{ marginLeft: '1rem' }}>
+                        {isTrained ? '✅ Trained' : '❌ Not Trained'}
+                      </span>
+                    </div>
+                    
+                    <div>
+                      {editingDescription[person.id] ? (
+                        <input
+                          type="text"
+                          defaultValue={person.description}
+                          onBlur={(e) => handleDescriptionEdit(person.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleDescriptionEdit(person.id, e.target.value);
+                            }
+                          }}
+                          placeholder="Enter description"
+                          style={{
+                            fontSize: '0.9rem',
+                            padding: '0.25rem',
+                            border: '2px solid #9146ff',
+                            borderRadius: '4px',
+                            width: '300px'
+                          }}
+                        />
+                      ) : (
+                        <span onClick={() => startEditingDescription(person.id)} style={{ cursor: 'pointer', fontSize: '0.9rem', color: '#666' }}>
+                          {person.description}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   
                   {isCurrentlyTraining && (
