@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</head>
+<body>
+    <canvas id="canvas" width="192" height="192"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Dark purple background
+        ctx.fillStyle = '#4a148c';
+        ctx.fillRect(0, 0, 192, 192);
+        
+        // Draw speech bubble outline
+        ctx.strokeStyle = '#f5f5f5';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.roundRect(20, 20, 152, 137, 15);
+        ctx.stroke();
+        
+        // Draw triangle
+        ctx.beginPath();
+        ctx.moveTo(96-15, 157);
+        ctx.lineTo(96, 172);
+        ctx.lineTo(96+15, 157);
+        ctx.closePath();
+        ctx.fillStyle = '#f5f5f5';
+        ctx.fill();
+        
+        // Draw SC text
+        ctx.fillStyle = '#f5f5f5';
+        ctx.font = 'bold 72px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('SC', 96, 75);
+        
+        // Convert to data URL and download
+        const link = document.createElement('a');
+        link.download = 'logo.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    </script>
+</body>
+</html>
